@@ -4,12 +4,12 @@ out
 .env
 .env.local
 .env.*.local
-storage/
+/storage/
 coverage
 playwright-report
 test-results
 *.tsbuildinfo
 next-env.d.ts
 tests/e2e/.auth/
-storage-test/
+/storage-test/
 .vercel
