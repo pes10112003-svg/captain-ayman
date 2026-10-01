@@ -1,9 +1,12 @@
-# Kinetic — Personal-Trainer Client Management Platform
+# Captain Ayman (كابتن أيمن) — Personal-Trainer Client Management Platform
 
-A production-ready full-stack web app (installable PWA) for a personal trainer to manage many clients from one place: workout plans with set-by-set logging and partial reps, nutrition plans with automatically time-stamped meals, body measurements, private before/after photos, per-client permissions, an audit trail and analytics computed from real data.
+> 🇪🇬 **Arabic handover guide for the coach:** [docs/HANDOVER.ar.md](./docs/HANDOVER.ar.md)
+
+A production-ready full-stack web app (installable PWA, **Arabic RTL by default + English**, light/dark mode) for a personal trainer to manage many clients from one place: workout plans with set-by-set logging and partial reps, nutrition plans with automatically time-stamped meals, body measurements, private before/after photos, per-client permissions, an audit trail and analytics computed from real data.
 
 - **Coach** → a SaaS-style dashboard: every client, what they did today, plans, history, progress and reports.
 - **Client** → a mobile-first app answering one question: *“What do I need to do today?”*
+- **Private by design** → a coach-controlled **site access code** in front of everything, coach-issued client passwords, and server-side authorization on every request.
 
 ---
 
@@ -54,6 +57,7 @@ Created by `npm run db:seed` (fictional data, ~8 weeks of history):
 
 | Role | Email | Password | Notes |
 |---|---|---|---|
+| — | **Site access code** | `AYMAN-2026` | Asked once per device before the sign-in page |
 | Coach | `coach@kinetic.test` | `CoachDemo!2026` | Owns all demo clients |
 | Client A | `omar@kinetic.test` | `ClientDemo!2026` | Push/Pull/Legs, fat loss, photos |
 | Client B | `mariam@kinetic.test` | `ClientDemo!2026` | Full body, may upload photos & edit profile |
@@ -171,6 +175,8 @@ Changing the schema: edit `schema.ts` → `npm run db:generate` → review the S
 
 See **[SECURITY.md](./SECURITY.md)** for the full list. Highlights:
 
+- **Site access code (gate)** — until a device enters the coach's access code, *nothing* is reachable: pages redirect to `/access`, server actions and the API answer 401. The code is stored AES-256-GCM-encrypted (key derived from `AUTH_SECRET`) so the coach can view & share it; devices get a signed, versioned `httpOnly` cookie, and changing the code rotates the version — instantly locking out every other device. Attempts are rate-limited per IP.
+- **Coach-managed passwords** — the coach sets (or generates) each client's password and shares it with an invite message; clients can only change it when the coach enables the `changeOwnPassword` permission (or asks them to choose one at first sign-in).
 - **Server-side authorization on every request** — page layouts, server actions and API routes all resolve the actor from the session and call `authorizeClient()`; client-area URLs contain no ids at all, and any foreign id returns **404** (existence is never revealed).
 - **Coach vs client roles** enforced server-side; clients can't call coach-only services even for their own record.
 - **Per-client permissions** are *extra restrictions* inside a client's own account — they can never widen access.
@@ -189,12 +195,14 @@ See **[SECURITY.md](./SECURITY.md)** for the full list. Highlights:
 |---|---|---|---|
 | `DATABASE_URL` | ✅ | — | PostgreSQL connection string |
 | `APP_URL` | ✅ in prod | `http://localhost:3000` | Public URL (reset links, cookie `Secure` flag, origin checks) |
-| `APP_NAME` | | `Kinetic` | Product name shown in the UI |
+| `APP_NAME` / `APP_NAME_AR` | | `Captain Ayman` / `كابتن أيمن` | Brand shown in English / Arabic |
+| `AUTH_SECRET` | ✅ in prod | — | ≥ 32 chars; encrypts the access code & signs access cookies |
+| `ADMIN_KEY` | | — | Enables `/setup` (first coach account, coach password / access-code recovery). Remove to disable |
 | `APP_TIMEZONE` | | `UTC` | Default timezone for new coaches (changeable in Settings) |
 | `SESSION_TTL_DAYS` | | `30` | Session lifetime |
 | `CRON_SECRET` | ✅ in prod | — | Bearer secret for `/api/cron/daily` (≥ 16 chars) |
 | `TRUST_PROXY` | | `false` | `true` only behind a proxy that sets `X-Forwarded-For` |
-| `STORAGE_DRIVER` | | `local` | `local` or `s3` |
+| `STORAGE_DRIVER` | | `database` | `database` (photos in Postgres — ideal for Vercel), `local` or `s3` |
 | `STORAGE_LOCAL_DIR` | | `./storage` | Private directory for photos (mount a persistent volume) |
 | `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE` | for S3 | — | Any S3-compatible **private** bucket (AWS, R2, MinIO, B2) |
 | `MAX_UPLOAD_MB` | | `10` | Photo upload limit |
@@ -230,13 +238,15 @@ See **[SECURITY.md](./SECURITY.md)** for the full list. Highlights:
 8. Coach can modify future plans. 9. Historical records stay unchanged (12/12/10 stays 12/12/10 after targets become 10).
 10. Client permissions restrict actions (reps entry, completion, viewing, uploads) — and never widen access.
 11. Private photos: only the owning coach and the client (with permission) can read them; fake images are rejected.
+12. Coach-controlled passwords: only the client's own coach can set them; clients can't change them without permission.
+13. Site access code: coach-only, encrypted at rest, case-insensitive check, rotation revokes every old device.
 
 ```bash
 createdb kinetic_test            # once
 npm test                         # TEST_DATABASE_URL overrides the default
 ```
 
-**End-to-end (Playwright)** — `tests/e2e/` drives the real app: unauthenticated access, URL/API id manipulation (404s), cross-site POST blocking, security headers & cookie flags, login rate limiting, a mobile client logging a full set + a partial set + a meal and the coach verifying exact values/timestamps, instant session revocation on disable, and the forced first-login password change.
+**End-to-end (Playwright)** — `tests/e2e/` drives the real app: unauthenticated access, URL/API id manipulation (404s), cross-site POST blocking, security headers & cookie flags, login rate limiting, a mobile client logging a full set + a partial set + a meal and the coach verifying exact values/timestamps, instant session revocation on disable, the forced first-login password change, coach-set passwords, the site access gate (Arabic RTL by default on a new device, wrong/right codes, API closed) and access-code rotation locking out other devices.
 
 ```bash
 npm run db:reset && npm run build && npm start     # in one terminal
@@ -245,17 +255,29 @@ npm run test:e2e                                   # in another
 
 ## 11. Deploying to production
 
+### Option A — Vercel (Hobby, free) + Neon Postgres (free) — recommended for ~20 clients
+
+1. Push this repo to a **private** GitHub repository and import it in Vercel (framework: Next.js). `vercel.json` already sets the region (`fra1`, close to Egypt), the build command (`npm run db:migrate && npm run build` — migrations run on every deploy) and a daily cron for `/api/cron/daily`.
+2. In the Vercel project → **Storage** → create a **Neon** Postgres database and connect it (adds `DATABASE_URL` and `DATABASE_URL_UNPOOLED`).
+3. Environment variables: `AUTH_SECRET` (`openssl rand -hex 32`), `CRON_SECRET` (another random value), `ADMIN_KEY` (long random value), `APP_URL=https://<your-project>.vercel.app`, `APP_TIMEZONE=Africa/Cairo`, `STORAGE_DRIVER=database`, `TRUST_PROXY=true`.
+4. Deploy, then open `https://<your-project>.vercel.app/setup`, enter the `ADMIN_KEY`, create the coach account and the site access code.
+5. Optional: add a custom domain in Vercel and update `APP_URL`.
+
+Free-tier notes: Vercel Hobby has no expiry and generous monthly limits for a small coaching business, but its terms restrict it to non-commercial personal use — move to Pro if you need commercial terms. Neon Free gives 0.5 GB per project (photos are re-encoded to compact WebP) and scales to zero when idle (first request after idle takes ~1 s).
+
+### Option B — any Node host / Docker
+
 1. **Database:** managed PostgreSQL (Neon, Supabase, RDS, Cloud SQL…). Set `DATABASE_URL` (and `DATABASE_SSL=true` if required).
-2. **Secrets:** `APP_URL=https://your-domain`, `CRON_SECRET=$(openssl rand -hex 32)`.
-3. **Photos:** use `STORAGE_DRIVER=s3` with a **private** bucket (block public access), or mount a persistent volume at `STORAGE_LOCAL_DIR` on a single-instance host.
+2. **Secrets:** `APP_URL=https://your-domain`, `AUTH_SECRET`, `CRON_SECRET`, optional `ADMIN_KEY`.
+3. **Photos:** `STORAGE_DRIVER=database` (default), `s3` with a **private** bucket, or `local` with a persistent volume on a single-instance host.
 4. **Build & migrate:** `npm ci && npm run build && npm run db:migrate`, then `npm start` (or use the `Dockerfile`; it produces a small standalone image running as a non-root user with a health check).
-5. **First coach:** `npm run coach:create -- --email you@yourgym.com --name "Your Name" --timezone Africa/Cairo`. Do **not** run the demo seed in production.
+5. **First coach:** `/setup` (with `ADMIN_KEY`) or `npm run coach:create -- --email you@yourgym.com --name "Your Name" --timezone Africa/Cairo`. Do **not** run the demo seed in production.
 6. **Daily job:** call `GET /api/cron/daily` with `Authorization: Bearer $CRON_SECRET` at ~00:05 in your timezone (Vercel Cron, GitHub Actions, k8s CronJob or system cron with `npm run cron:daily`).
 7. **HTTPS only.** Behind a reverse proxy set `TRUST_PROXY=true` so rate limiting sees real client IPs; forward `X-Forwarded-Host` so server-action origin checks pass.
-8. **Email:** wire `src/server/mail.ts` to your provider (Resend, SES, Postmark, SMTP) for self-service password reset. Until then coaches can issue reset links / temporary passwords from a client's Profile tab.
-9. **Backups:** enable automated Postgres backups and bucket versioning.
+8. **Email:** wire `src/server/mail.ts` to your provider for self-service password reset. Until then the forgot-password page tells clients to ask their coach (who sets a new password in seconds) and the coach to use `/setup`.
+9. **Backups:** enable automated Postgres backups.
 
-Hardening checklist: HTTPS + HSTS ✔, strong `CRON_SECRET` ✔, private bucket ✔, DB user with least privilege ✔, log shipping for `[kinetic]` errors ✔, dependency updates (`npm audit`) ✔.
+Hardening checklist: HTTPS + HSTS ✔, strong `AUTH_SECRET` / `CRON_SECRET` / `ADMIN_KEY` ✔, site access code ON ✔, DB user with least privilege ✔, log shipping for `[kinetic]` errors ✔, dependency updates (`npm audit`) ✔.
 
 ## 12. REST API
 
@@ -286,4 +308,4 @@ All endpoints use the session cookie, return JSON, send `Cache-Control: no-store
 - **Subscriptions & payments:** add `subscriptions` keyed by client and gate features in `authorizeClient()`.
 - **Wearables & advanced analytics:** ingest into new measurement types (custom types already supported) or dedicated tables; analytics are pure functions over logs in `services/analytics.ts`.
 - **Mobile apps:** the `/api/v1` layer calls the same services as the web UI.
-- **Arabic / RTL:** copy is centralised in components and `lib/constants.ts`; add `next-intl` and `dir="rtl"` to localise.
+- **Languages:** Arabic (default, RTL) and English live in `src/i18n/ar.ts` / `en.ts` (same shape, type-checked). See [docs/i18n.md](./docs/i18n.md) to add strings or another language.
