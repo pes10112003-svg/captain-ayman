@@ -31,7 +31,10 @@ export function ProgressBar({
       aria-label={label}
       className={cn("w-full overflow-hidden rounded-full bg-surface-3", { sm: "h-1.5", md: "h-2", lg: "h-3" }[size], className)}
     >
-      <div className={cn("h-full rounded-full transition-[width] duration-500 ease-out", fill)} style={{ width: `${v}%` }} />
+      <div
+        className={cn("h-full origin-left animate-bar-grow rounded-full transition-[width] duration-500 ease-out rtl:origin-right", fill)}
+        style={{ width: `${v}%` }}
+      />
     </div>
   );
 }
@@ -57,7 +60,13 @@ export function ProgressRing({
   const v = Math.max(0, Math.min(100, value ?? 0));
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
-  const color = { brand: "var(--primary)", lime: "#C4F042", "series-1": "var(--series-1)", "series-2": "var(--series-2)", good: "var(--good)" }[tone];
+  const color = {
+    brand: "var(--primary)",
+    lime: "#C4F042",
+    "series-1": "var(--series-1)",
+    "series-2": "var(--series-2)",
+    good: "var(--good)",
+  }[tone];
   return (
     <div
       className={cn("relative inline-grid shrink-0 place-items-center", className)}
@@ -77,7 +86,11 @@ export function ProgressRing({
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={c - (v / 100) * c}
-          style={{ transition: "stroke-dashoffset 600ms ease-out" }}
+          className="animate-ring-draw"
+          style={{
+            transition: "stroke-dashoffset 600ms ease-out",
+            ["--ring-c" as string]: c,
+          }}
         />
       </svg>
       <div className="absolute inset-0 grid place-items-center">{children}</div>

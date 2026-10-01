@@ -1,4 +1,4 @@
-import { Activity, Camera, Dumbbell, LayoutGrid, LineChart, ShieldCheck, UserCog, Utensils } from "lucide-react";
+import { Camera, Dumbbell, LayoutGrid, LineChart, Settings, Utensils } from "lucide-react";
 import { requireCoachPage } from "@/server/auth/guards";
 import { getClientProfile } from "@/server/services/clients";
 import { orNotFound } from "@/server/page-helpers";
@@ -19,14 +19,33 @@ export default async function ClientLayout({ children, params }: { children: Rea
       <LinkTabs
         className="mb-6"
         items={[
-          { href: base, label: t.tabs.overview, icon: <LayoutGrid />, exact: true },
-          { href: `${base}/workouts`, label: t.tabs.workouts, icon: <Dumbbell /> },
-          { href: `${base}/nutrition`, label: t.tabs.nutrition, icon: <Utensils /> },
-          { href: `${base}/progress`, label: t.tabs.progress, icon: <LineChart /> },
+          {
+            href: base,
+            label: t.tabs.overview,
+            icon: <LayoutGrid />,
+            exact: true,
+          },
+          {
+            href: `${base}/workouts`,
+            label: t.tabs.workouts,
+            icon: <Dumbbell />,
+          },
+          {
+            href: `${base}/nutrition`,
+            label: t.tabs.nutrition,
+            icon: <Utensils />,
+          },
+          {
+            href: `${base}/progress`,
+            label: t.tabs.progress,
+            icon: <LineChart />,
+          },
           { href: `${base}/photos`, label: t.tabs.photos, icon: <Camera /> },
-          { href: `${base}/activity`, label: t.tabs.activity, icon: <Activity /> },
-          { href: `${base}/permissions`, label: t.tabs.permissions, icon: <ShieldCheck /> },
-          { href: `${base}/settings`, label: t.tabs.profile, icon: <UserCog /> },
+          {
+            href: `${base}/settings`,
+            label: t.tabs.settings,
+            icon: <Settings />,
+          },
         ]}
       />
       {children}

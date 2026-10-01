@@ -17,6 +17,8 @@ export default defineConfig({
     // Access-code cookie + English UI (tests assert English labels; Arabic is covered in i18n.spec.ts).
     storageState: "tests/e2e/.auth/state.json",
     trace: "retain-on-failure",
+    // Skip the opening splash & entrance animations (covered on their own in simplify.spec.ts).
+    contextOptions: { reducedMotion: "reduce" },
   },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },

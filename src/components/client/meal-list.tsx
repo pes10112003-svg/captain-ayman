@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Check, Clock, Loader2, Undo2 } from "lucide-react";
 import { setMealConsumedAction } from "@/server/actions/nutrition";
+import { celebrate } from "@/lib/celebrate";
 import { clockToMinutes } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n/client";
@@ -14,7 +15,14 @@ export type ClientMeal = {
   mealName: string;
   scheduledTime: string;
   notes: string | null;
-  items: { name: string; quantity: string | null; calories: number | null; protein: number | null; carbs: number | null; fats: number | null }[];
+  items: {
+    name: string;
+    quantity: string | null;
+    calories: number | null;
+    protein: number | null;
+    carbs: number | null;
+    fats: number | null;
+  }[];
   totalCalories: number | null;
   totalProtein: number | null;
   totalCarbs: number | null;
@@ -23,7 +31,17 @@ export type ClientMeal = {
   consumedAt: string | null;
 };
 
-export function MealList({ meals: initial, canComplete, timezone, nowMinutes }: { meals: ClientMeal[]; canComplete: boolean; timezone: string; nowMinutes: number }) {
+export function MealList({
+  meals: initial,
+  canComplete,
+  timezone,
+  nowMinutes,
+}: {
+  meals: ClientMeal[];
+  canComplete: boolean;
+  timezone: string;
+  nowMinutes: number;
+}) {
   const router = useRouter();
   const { t, f, fmt } = useI18n();
   const [meals, setMeals] = useState(initial);
@@ -34,7 +52,17 @@ export function MealList({ meals: initial, canComplete, timezone, nowMinutes }: 
     if (!canComplete || busy) return;
     setBusy(m.id);
     // Optimistic: show as eaten immediately; the authoritative time comes back from the server.
-    setMeals((all) => all.map((x) => (x.id === m.id ? { ...x, status: consumed ? "completed" : "pending", consumedAt: consumed ? x.consumedAt : null } : x)));
+    setMeals((all) =>
+      all.map((x) =>
+        x.id === m.id
+          ? {
+              ...x,
+              status: consumed ? "completed" : "pending",
+              consumedAt: consumed ? x.consumedAt : null,
+            }
+          : x,
+      ),
+    );
     if (consumed && "vibrate" in navigator) navigator.vibrate?.(12);
     const res = await setMealConsumedAction(m.id, consumed);
     setBusy(null);
@@ -45,7 +73,14 @@ export function MealList({ meals: initial, canComplete, timezone, nowMinutes }: 
       return;
     }
     setMeals((all) => all.map((x) => (x.id === m.id ? { ...x, status: res.data.status, consumedAt: res.data.consumedAt } : x)));
-    if (consumed && res.data.consumedAt) toast.success(f(t.meals.logged, { meal: m.mealName, time: fmt.time(res.data.consumedAt, timezone) }));
+    if (consumed && res.data.consumedAt)
+      toast.success(
+        f(t.meals.logged, {
+          meal: m.mealName,
+          time: fmt.time(res.data.consumedAt, timezone),
+        }),
+      );
+    if (consumed && meals.every((x) => x.id === m.id || x.status === "completed")) celebrate();
     router.refresh();
   };
 
@@ -56,7 +91,13 @@ export function MealList({ meals: initial, canComplete, timezone, nowMinutes }: 
         const late = !eaten && clockToMinutes(m.scheduledTime) < nowMinutes;
         const isNext = m.id === firstPending;
         return (
-          <li key={m.id} className={cn("overflow-hidden rounded-3xl border bg-surface shadow-card transition", eaten ? "border-good/40" : isNext ? "border-ink/70" : "border-line")}>
+          <li
+            key={m.id}
+            className={cn(
+              "overflow-hidden rounded-3xl border bg-surface shadow-card transition",
+              eaten ? "border-good/40" : isNext ? "border-ink/70" : "border-line",
+            )}
+          >
             <div className="p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -68,7 +109,9 @@ export function MealList({ meals: initial, canComplete, timezone, nowMinutes }: 
                   <h3 className={cn("mt-1 text-lg font-semibold", eaten && "text-ink-2")}>{m.mealName}</h3>
                 </div>
                 {m.totalCalories != null ? (
-                  <span className="shrink-0 rounded-full bg-surface-2 px-2.5 py-1 text-xs font-semibold tabular">{fmt.num(Math.round(m.totalCalories), 0)} {t.units.kcal}</span>
+                  <span className="shrink-0 rounded-full bg-surface-2 px-2.5 py-1 text-xs font-semibold tabular">
+                    {fmt.num(Math.round(m.totalCalories), 0)} {t.units.kcal}
+                  </span>
                 ) : null}
               </div>
               <ul className="mt-3 space-y-1.5">
@@ -81,12 +124,20 @@ export function MealList({ meals: initial, canComplete, timezone, nowMinutes }: 
               </ul>
               {m.totalProtein != null || m.totalCarbs != null || m.totalFats != null ? (
                 <p className="mt-3 flex gap-3 text-xs text-muted tabular">
-                  <span>{f(t.meals.macroProtein, { v: fmt.num(m.totalProtein ?? 0) })}</span>
+                  <span>
+                    {f(t.meals.macroProtein, {
+                      v: fmt.num(m.totalProtein ?? 0),
+                    })}
+                  </span>
                   <span>{f(t.meals.macroCarbs, { v: fmt.num(m.totalCarbs ?? 0) })}</span>
                   <span>{f(t.meals.macroFats, { v: fmt.num(m.totalFats ?? 0) })}</span>
                 </p>
               ) : null}
-              {m.notes ? <p dir="auto" className="mt-3 rounded-xl bg-surface-2 px-3 py-2 text-start text-xs text-ink-2">{m.notes}</p> : null}
+              {m.notes ? (
+                <p dir="auto" className="mt-3 rounded-xl bg-surface-2 px-3 py-2 text-start text-xs text-ink-2">
+                  {m.notes}
+                </p>
+              ) : null}
             </div>
             {eaten ? (
               <div className="flex items-center justify-between gap-3 border-t border-good/30 bg-good-soft px-4 py-3">
@@ -94,10 +145,19 @@ export function MealList({ meals: initial, canComplete, timezone, nowMinutes }: 
                   <span className="grid size-7 place-items-center rounded-full bg-good text-white">
                     <Check className="size-4 animate-pop" strokeWidth={3} />
                   </span>
-                  {m.consumedAt ? f(t.meals.eatenAt, { time: fmt.time(m.consumedAt, timezone) }) : t.meals.saving}
+                  {m.consumedAt
+                    ? f(t.meals.eatenAt, {
+                        time: fmt.time(m.consumedAt, timezone),
+                      })
+                    : t.meals.saving}
                 </span>
                 {canComplete ? (
-                  <button type="button" onClick={() => setConsumed(m, false)} disabled={!!busy} className="inline-flex items-center gap-1 text-xs font-medium text-good-text/80 hover:text-good-text">
+                  <button
+                    type="button"
+                    onClick={() => setConsumed(m, false)}
+                    disabled={!!busy}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-good-text/80 hover:text-good-text"
+                  >
                     {busy === m.id ? <Loader2 className="size-3.5 animate-spin" /> : <Undo2 className="rtl-flip size-3.5" />} {t.meals.undo}
                   </button>
                 ) : null}
@@ -124,4 +184,3 @@ export function MealList({ meals: initial, canComplete, timezone, nowMinutes }: 
     </ol>
   );
 }
-

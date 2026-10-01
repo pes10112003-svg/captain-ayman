@@ -51,7 +51,7 @@ export default async function CoachLayout({ children }: { children: React.ReactN
           clientId: typeof n.data?.clientId === "string" ? n.data.clientId : null,
         }))}
       />
-      <main className="mx-auto w-full max-w-[1400px] px-4 pb-16 pt-6 sm:px-6 lg:px-8 lg:pt-8">{children}</main>
+      <main className="page-stagger mx-auto w-full max-w-[1400px] px-4 pb-16 pt-6 sm:px-6 lg:px-8 lg:pt-8">{children}</main>
     </div>
   );
 }

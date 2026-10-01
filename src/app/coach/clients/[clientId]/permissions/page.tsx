@@ -1,11 +1,7 @@
-import { requireCoachPage } from "@/server/auth/guards";
-import { getClientProfile } from "@/server/services/clients";
-import { orNotFound } from "@/server/page-helpers";
-import { PermissionsForm } from "@/components/coach/permissions-form";
+import { redirect } from "next/navigation";
 
+/** Permissions now live on the client's Settings tab. */
 export default async function PermissionsPage({ params }: { params: Promise<{ clientId: string }> }) {
-  const actor = await requireCoachPage();
   const { clientId } = await params;
-  const { client, permissions } = await orNotFound(getClientProfile(actor, clientId));
-  return <PermissionsForm clientId={client.id} clientName={client.fullName} initial={permissions} />;
+  redirect(`/coach/clients/${encodeURIComponent(clientId)}/settings#permissions`);
 }

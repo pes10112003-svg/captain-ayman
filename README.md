@@ -100,7 +100,7 @@ Workout schedules are generated relative to the day you seed, so “today” alw
 - **Permissions** — ten per-client switches with sensible defaults.
 - **Client settings** — edit all profile fields, profile photo, disable/re-activate (revokes sessions instantly), temporary password or 24-hour reset link, permanent delete with typed confirmation.
 - **Workouts / Nutrition / Progress / Reports / Activity log** — cross-client views; reports for 7/30/90 days.
-- **Settings** — coach profile, business name, timezone, kg/lb, cm/in, week start, password.
+- **Settings** — language, theme, brand name, password and the site access code. Time zone, units and week start are fixed: Egypt time (Africa/Cairo), kg / cm, week starts on Saturday.
 
 ### Client (mobile-first)
 - **Home** — greeting, big *Today's Workout* card (x / y exercises, %, start/continue), *Today's Meals* (x / y, next meal), weight + trend, 30-day consistency, week strip.
@@ -149,7 +149,7 @@ tests/                          integration (Vitest + Postgres), unit, e2e (Play
 
 **Immutable history.** Plans are editable *templates*. Each day, the day's workout and meals are copied into *log snapshots* (`workout_logs → workout_exercise_logs → workout_set_logs`, `meal_logs`) that store names, targets and macros by value. Editing or deleting a plan never rewrites a log (FKs are `ON DELETE SET NULL`). Today's snapshot follows plan edits only while it is untouched; once the client logs anything it is frozen. A daily job (`/api/cron/daily`, also triggered lazily on the coach's first dashboard view each day) materialises every active client's day so missed workouts/meals are recorded as missed.
 
-**Time.** All timestamps are `timestamptz` generated on the server (`now()`); calendar days are computed in the coach's configured IANA timezone. Clients never send times.
+**Time.** All timestamps are `timestamptz` generated on the server (`now()`); calendar days are computed in Egypt time (Africa/Cairo, fixed in `FIXED_COACH_SETTINGS`). Clients never send times.
 
 ## 6. Database design
 
@@ -198,7 +198,6 @@ See **[SECURITY.md](./SECURITY.md)** for the full list. Highlights:
 | `APP_NAME` / `APP_NAME_AR` | | `Captain Ayman` / `كابتن أيمن` | Brand shown in English / Arabic |
 | `AUTH_SECRET` | ✅ in prod | — | ≥ 32 chars; encrypts the access code & signs access cookies |
 | `ADMIN_KEY` | | — | Enables `/setup` (first coach account, coach password / access-code recovery). Remove to disable |
-| `APP_TIMEZONE` | | `UTC` | Default timezone for new coaches (changeable in Settings) |
 | `SESSION_TTL_DAYS` | | `30` | Session lifetime |
 | `CRON_SECRET` | ✅ in prod | — | Bearer secret for `/api/cron/daily` (≥ 16 chars) |
 | `TRUST_PROXY` | | `false` | `true` only behind a proxy that sets `X-Forwarded-For` |
@@ -259,7 +258,7 @@ npm run test:e2e                                   # in another
 
 1. Push this repo to a **private** GitHub repository and import it in Vercel (framework: Next.js). `vercel.json` already sets the region (`fra1`, close to Egypt), the build command (`npm run db:migrate && npm run build` — migrations run on every deploy) and a daily cron for `/api/cron/daily`.
 2. In the Vercel project → **Storage** → create a **Neon** Postgres database and connect it (adds `DATABASE_URL` and `DATABASE_URL_UNPOOLED`).
-3. Environment variables: `AUTH_SECRET` (`openssl rand -hex 32`), `CRON_SECRET` (another random value), `ADMIN_KEY` (long random value), `APP_URL=https://<your-project>.vercel.app`, `APP_TIMEZONE=Africa/Cairo`, `STORAGE_DRIVER=database`, `TRUST_PROXY=true`.
+3. Environment variables: `AUTH_SECRET` (`openssl rand -hex 32`), `CRON_SECRET` (another random value), `ADMIN_KEY` (long random value), `APP_URL=https://<your-project>.vercel.app`, `STORAGE_DRIVER=database`, `TRUST_PROXY=true`.
 4. Deploy, then open `https://<your-project>.vercel.app/setup`, enter the `ADMIN_KEY`, create the coach account and the site access code.
 5. Optional: add a custom domain in Vercel and update `APP_URL`.
 
@@ -271,7 +270,7 @@ Free-tier notes: Vercel Hobby has no expiry and generous monthly limits for a sm
 2. **Secrets:** `APP_URL=https://your-domain`, `AUTH_SECRET`, `CRON_SECRET`, optional `ADMIN_KEY`.
 3. **Photos:** `STORAGE_DRIVER=database` (default), `s3` with a **private** bucket, or `local` with a persistent volume on a single-instance host.
 4. **Build & migrate:** `npm ci && npm run build && npm run db:migrate`, then `npm start` (or use the `Dockerfile`; it produces a small standalone image running as a non-root user with a health check).
-5. **First coach:** `/setup` (with `ADMIN_KEY`) or `npm run coach:create -- --email you@yourgym.com --name "Your Name" --timezone Africa/Cairo`. Do **not** run the demo seed in production.
+5. **First coach:** `/setup` (with `ADMIN_KEY`) or `npm run coach:create -- --email you@yourgym.com --name "Your Name"`. Do **not** run the demo seed in production.
 6. **Daily job:** call `GET /api/cron/daily` with `Authorization: Bearer $CRON_SECRET` at ~00:05 in your timezone (Vercel Cron, GitHub Actions, k8s CronJob or system cron with `npm run cron:daily`).
 7. **HTTPS only.** Behind a reverse proxy set `TRUST_PROXY=true` so rate limiting sees real client IPs; forward `X-Forwarded-Host` so server-action origin checks pass.
 8. **Email:** wire `src/server/mail.ts` to your provider for self-service password reset. Until then the forgot-password page tells clients to ask their coach (who sets a new password in seconds) and the coach to use `/setup`.

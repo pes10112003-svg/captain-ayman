@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Camera, ChevronLeft, Dumbbell, Mail, Phone, Ruler, ShieldCheck, Utensils } from "lucide-react";
+import { Camera, ChevronLeft, Dumbbell, Mail, Phone, Ruler, Utensils } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { LinkButton } from "@/components/ui/button";
@@ -11,7 +11,17 @@ import { goalLabel } from "@/i18n/labels";
 export async function ClientHeader({
   client,
 }: {
-  client: { id: string; fullName: string; code: string; email: string; phone: string | null; status: "active" | "inactive"; goal: Goal; avatarKey: string | null; pendingPasswordSetup: boolean };
+  client: {
+    id: string;
+    fullName: string;
+    code: string;
+    email: string;
+    phone: string | null;
+    status: "active" | "inactive";
+    goal: Goal;
+    avatarKey: string | null;
+    pendingPasswordSetup: boolean;
+  };
 }) {
   const { t } = await getI18n();
   const base = `/coach/clients/${client.id}`;
@@ -57,9 +67,6 @@ export async function ClientHeader({
           </LinkButton>
           <LinkButton href={`${base}/photos?upload=1`} variant="secondary" size="sm">
             <Camera /> {t.clientHeader.uploadPhoto}
-          </LinkButton>
-          <LinkButton href={`${base}/permissions`} variant="secondary" size="sm">
-            <ShieldCheck /> {t.clientHeader.permissions}
           </LinkButton>
         </div>
       </div>

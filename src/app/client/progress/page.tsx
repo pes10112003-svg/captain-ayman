@@ -12,7 +12,6 @@ import { BodyComposition } from "@/components/shared/body-composition";
 import { MeasurementTrend } from "@/components/shared/measurement-trend";
 import { MeasurementHistory } from "@/components/coach/measurement-history";
 import { PhotoGallery } from "@/components/shared/photo-gallery";
-import { PhotoUploader } from "@/components/shared/photo-uploader";
 import { kgTo, round } from "@/lib/units";
 import { getI18n } from "@/i18n/server";
 import { translateServerMessage } from "@/i18n/server-messages";
@@ -29,7 +28,8 @@ export default async function ClientProgressPage() {
   try {
     progress = await getProgress(actor, actor.clientId);
   } catch (err) {
-    if (err instanceof ForbiddenError) return <EmptyState icon={<Lock />} title={t.progress.turnedOff} description={translateServerMessage(err.message, locale)} />;
+    if (err instanceof ForbiddenError)
+      return <EmptyState icon={<Lock />} title={t.progress.turnedOff} description={translateServerMessage(err.message, locale)} />;
     throw err;
   }
   const { prefs, permissions } = progress;
@@ -50,10 +50,27 @@ export default async function ClientProgressPage() {
       <BodyComposition progress={progress} />
 
       <Card>
-        <CardHeader title={t.progress.weight} description={goal != null ? f(t.overview.goalLine, { value: fmt.weight(progress.client.goalWeightKg, prefs.weightUnit) }) : undefined} />
+        <CardHeader
+          title={t.progress.weight}
+          description={
+            goal != null
+              ? f(t.overview.goalLine, {
+                  value: fmt.weight(progress.client.goalWeightKg, prefs.weightUnit),
+                })
+              : undefined
+          }
+        />
         <CardBody>
           {weightSeries.length >= 2 ? (
-            <TrendChart data={weightSeries} unit={fmt.unit(prefs.weightUnit)} name={t.progress.weight} color="series-3" goal={goal} goalLabel={t.progress.goal} height={200} />
+            <TrendChart
+              data={weightSeries}
+              unit={fmt.unit(prefs.weightUnit)}
+              name={t.progress.weight}
+              color="series-3"
+              goal={goal}
+              goalLabel={t.progress.goal}
+              height={200}
+            />
           ) : (
             <p className="py-10 text-center text-sm text-muted">{t.progress.weightTrendHint}</p>
           )}
@@ -74,10 +91,22 @@ export default async function ClientProgressPage() {
         <CardBody>
           <PercentLinesChart
             height={200}
-            data={analytics.weekly.map((w) => ({ label: fmt.dateShort(w.week), workout: w.workoutAdherence, nutrition: w.mealAdherence }))}
+            data={analytics.weekly.map((w) => ({
+              label: fmt.dateShort(w.week),
+              workout: w.workoutAdherence,
+              nutrition: w.mealAdherence,
+            }))}
             series={[
-              { key: "workout", name: t.progress.workoutsSeries, color: "series-1" },
-              { key: "nutrition", name: t.progress.mealsSeries, color: "series-2" },
+              {
+                key: "workout",
+                name: t.progress.workoutsSeries,
+                color: "series-1",
+              },
+              {
+                key: "nutrition",
+                name: t.progress.mealsSeries,
+                color: "series-2",
+              },
             ]}
           />
         </CardBody>
@@ -91,7 +120,14 @@ export default async function ClientProgressPage() {
               <MeasurementTrend
                 types={progress.types
                   .filter((ty) => !["weight", "body_fat", "bmi"].includes(ty.key) || !ty.isSystem)
-                  .map((ty) => ({ id: ty.id, key: ty.key, isSystem: ty.isSystem, name: ty.name, kind: ty.kind, unit: ty.unit }))}
+                  .map((ty) => ({
+                    id: ty.id,
+                    key: ty.key,
+                    isSystem: ty.isSystem,
+                    name: ty.name,
+                    kind: ty.kind,
+                    unit: ty.unit,
+                  }))}
                 series={progress.series}
                 weightUnit={prefs.weightUnit}
                 lengthUnit={prefs.lengthUnit}
@@ -101,7 +137,11 @@ export default async function ClientProgressPage() {
           <Card>
             <CardHeader title={t.progress.historyShort} />
             <CardBody className="pt-2">
-              {progress.entries.length ? <MeasurementHistory entries={progress.entries} canDelete={false} /> : <p className="text-sm text-muted">{t.progress.emptyTitle}</p>}
+              {progress.entries.length ? (
+                <MeasurementHistory entries={progress.entries} canDelete={false} />
+              ) : (
+                <p className="text-sm text-muted">{t.progress.emptyTitle}</p>
+              )}
             </CardBody>
           </Card>
         </>
@@ -109,13 +149,10 @@ export default async function ClientProgressPage() {
 
       {photos ? (
         <section className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 text-lg font-semibold">
-              <Images className="size-5" /> {t.progress.photos}
-            </h2>
-            {permissions.uploadPhotos ? <PhotoUploader clientId={actor.clientId} today={today} label={t.progress.addPhoto} /> : null}
-          </div>
-          <PhotoGallery photos={photos} clientId={actor.clientId} canDelete={false} />
+          <h2 className="flex items-center gap-2 text-lg font-semibold">
+            <Images className="size-5" /> {t.progress.photos}
+          </h2>
+          <PhotoGallery photos={photos} clientId={actor.clientId} canDelete={false} upload={permissions.uploadPhotos ? { today } : null} />
         </section>
       ) : null}
     </div>

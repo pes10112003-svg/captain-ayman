@@ -132,7 +132,6 @@
   --shadow-lg: 0 24px 64px -16px rgb(0 0 0 / 0.8);
 }
 
-
 @theme inline {
   --color-page: var(--page);
   --color-surface: var(--surface);
@@ -178,20 +177,54 @@
   --animate-fade-in: fade-in 160ms ease-out;
   --animate-pop: pop 180ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
   --animate-slide-up: slide-up 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-bar-grow: bar-grow 900ms cubic-bezier(0.2, 0.8, 0.2, 1) 120ms backwards;
+  --animate-ring-draw: ring-draw 1000ms cubic-bezier(0.2, 0.8, 0.2, 1) 120ms backwards;
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 @keyframes pop {
-  0% { transform: scale(0.85); }
-  60% { transform: scale(1.08); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(0.85);
+  }
+  60% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes ring-draw {
+  from {
+    stroke-dashoffset: var(--ring-c);
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
 }
 
 @layer base {
@@ -299,5 +332,137 @@
   ::after {
     animation-duration: 1ms !important;
     transition-duration: 1ms !important;
+  }
+}
+
+/* ── Motion ─────────────────────────────────────────────────────────
+   Page entrance: the direct children of each page fade up one after another.
+   `backwards` (not `both`) so no transform lingers after the animation — fixed
+   save bars inside pages keep positioning against the viewport. */
+@media (prefers-reduced-motion: no-preference) {
+  .page-stagger > * > * {
+    animation: rise 480ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  }
+  .page-stagger > * > :nth-child(2) {
+    animation-delay: 60ms;
+  }
+  .page-stagger > * > :nth-child(3) {
+    animation-delay: 120ms;
+  }
+  .page-stagger > * > :nth-child(4) {
+    animation-delay: 180ms;
+  }
+  .page-stagger > * > :nth-child(5) {
+    animation-delay: 240ms;
+  }
+  .page-stagger > * > :nth-child(n + 6) {
+    animation-delay: 300ms;
+  }
+}
+
+/* Opening splash — shown once per browser session (see components/shared/splash.tsx). */
+.ca-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(60% 50% at 50% 42%, rgb(196 240 66 / 0.1), transparent 70%), #0b0b0c;
+  animation: ca-splash-out 420ms cubic-bezier(0.4, 0, 0.2, 1) 1350ms forwards;
+}
+html[data-splash="off"] .ca-splash {
+  display: none;
+}
+.ca-splash__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  animation: ca-zoom-out 420ms cubic-bezier(0.4, 0, 0.2, 1) 1350ms forwards;
+}
+.ca-splash__mark {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  animation: ca-mark-in 560ms cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+}
+.ca-splash__mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.ca-splash__line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: ca-draw 620ms cubic-bezier(0.65, 0, 0.35, 1) 300ms forwards;
+}
+.ca-splash__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 26px;
+  box-shadow: 0 0 0 2px #c4f042;
+  opacity: 0;
+  animation: ca-ring 760ms cubic-bezier(0.2, 0.8, 0.2, 1) 860ms;
+}
+.ca-splash__name {
+  color: #fff;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  opacity: 0;
+  animation: ca-rise-in 520ms cubic-bezier(0.2, 0.8, 0.2, 1) 560ms forwards;
+}
+:lang(ar) .ca-splash__name {
+  letter-spacing: 0;
+}
+@keyframes ca-mark-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes ca-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes ca-ring {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.75);
+  }
+}
+@keyframes ca-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes ca-zoom-out {
+  to {
+    transform: scale(1.06);
+  }
+}
+@keyframes ca-splash-out {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ca-splash {
+    display: none;
   }
 }

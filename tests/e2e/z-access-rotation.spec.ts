@@ -5,7 +5,7 @@ import { COACH, newSession } from "./helpers";
 // Runs last (file order): rotating the code invalidates the shared access cookie of earlier specs.
 test("changing the access code locks out every other device until it enters the new code", async ({ browser }) => {
   const coach = await newSession(browser, COACH);
-  const other = await browser.newContext({ storageState: STATE_PATH });
+  const other = await browser.newContext({ storageState: STATE_PATH, reducedMotion: "reduce" });
   const otherPage = await other.newPage();
   await otherPage.goto("/login");
   await expect(otherPage).toHaveURL(/\/login/);

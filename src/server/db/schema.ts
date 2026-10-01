@@ -53,22 +53,17 @@ const num = (name: string, precision = 8, scale = 2) => numeric(name, { precisio
 export const userRole = pgEnum("user_role", ["coach", "client"]);
 export const clientStatus = pgEnum("client_status", ["active", "inactive"]);
 export const gender = pgEnum("gender", ["male", "female", "other", "unspecified"]);
-export const fitnessGoal = pgEnum("fitness_goal", [
-  "fat_loss",
-  "muscle_gain",
-  "recomposition",
-  "strength",
-  "endurance",
-  "general_fitness",
-  "maintenance",
-]);
+export const fitnessGoal = pgEnum("fitness_goal", ["fat_loss", "muscle_gain", "recomposition", "strength", "endurance", "general_fitness", "maintenance"]);
 export const weightUnit = pgEnum("weight_unit", ["kg", "lb"]);
 export const lengthUnit = pgEnum("length_unit", ["cm", "in"]);
 export const workoutLogStatus = pgEnum("workout_log_status", ["pending", "in_progress", "completed"]);
 export const setLogStatus = pgEnum("set_log_status", ["pending", "completed", "partial", "skipped"]);
 export const mealLogStatus = pgEnum("meal_log_status", ["pending", "completed"]);
 export const measurementKind = pgEnum("measurement_kind", ["mass", "length", "percent", "index", "other"]);
-export const photoAngle = pgEnum("photo_angle", ["front", "side", "back", "other"]);
+/** What a progress photo shows: a body angle, an InBody report, or anything else. */
+export const photoAngle = pgEnum("photo_angle", ["front", "side", "back", "inbody", "other"]);
+/** Which half of the client's «قبل / بعد» (before / after) photo board a photo belongs to. */
+export const photoPhase = pgEnum("photo_phase", ["before", "after"]);
 
 /* ───────────────────────────── identity ───────────────────────────── */
 
@@ -118,7 +113,9 @@ export const passwordResetTokens = pgTable(
     tokenHash: varchar("token_hash", { length: 64 }).notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     usedAt: timestamp("used_at", { withTimezone: true }),
-    createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+    createdById: uuid("created_by_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("prt_token_hash_uq").on(t.tokenHash), index("prt_user_idx").on(t.userId)],
@@ -138,11 +135,12 @@ export const coachSettings = pgTable("coach_settings", {
     .primaryKey()
     .references(() => users.id, { onDelete: "cascade" }),
   businessName: varchar("business_name", { length: 120 }),
-  timezone: varchar("timezone", { length: 64 }).notNull().default("UTC"),
+  /** Fixed to Egypt for this app (not editable in the UI). */
+  timezone: varchar("timezone", { length: 64 }).notNull().default("Africa/Cairo"),
   weightUnit: weightUnit("weight_unit").notNull().default("kg"),
   lengthUnit: lengthUnit("length_unit").notNull().default("cm"),
-  /** 0 = Sunday … 6 = Saturday */
-  weekStartsOn: smallint("week_starts_on").notNull().default(1),
+  /** 0 = Sunday … 6 = Saturday (fixed to Saturday for this app). */
+  weekStartsOn: smallint("week_starts_on").notNull().default(6),
   /** Last calendar day (coach tz) for which daily snapshots were generated. */
   lastSnapshotDate: date("last_snapshot_date", { mode: "string" }),
   updatedAt: updatedAt(),
@@ -177,16 +175,14 @@ export const clients = pgTable(
     coachNotes: text("coach_notes"),
     avatarKey: varchar("avatar_key", { length: 255 }),
     status: clientStatus("status").notNull().default("active"),
-    joinedOn: date("joined_on", { mode: "string" }).notNull().default(sql`CURRENT_DATE`),
+    joinedOn: date("joined_on", { mode: "string" })
+      .notNull()
+      .default(sql`CURRENT_DATE`),
     lastActivityAt: timestamp("last_activity_at", { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [
-    uniqueIndex("clients_user_uq").on(t.userId),
-    uniqueIndex("clients_code_uq").on(t.code),
-    index("clients_coach_idx").on(t.coachId, t.status),
-  ],
+  (t) => [uniqueIndex("clients_user_uq").on(t.userId), uniqueIndex("clients_code_uq").on(t.code), index("clients_coach_idx").on(t.coachId, t.status)],
 );
 
 export const clientPermissions = pgTable("client_permissions", {
@@ -204,7 +200,9 @@ export const clientPermissions = pgTable("client_permissions", {
   uploadPhotos: boolean("upload_photos").notNull().default(false),
   editPersonalInfo: boolean("edit_personal_info").notNull().default(false),
   changeOwnPassword: boolean("change_own_password").notNull().default(false),
-  updatedById: uuid("updated_by_id").references(() => users.id, { onDelete: "set null" }),
+  updatedById: uuid("updated_by_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
   updatedAt: updatedAt(),
 });
 
@@ -225,7 +223,11 @@ export const workoutPlans = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex("workout_plans_one_active_uq").on(t.clientId).where(sql`${t.isActive}`)],
+  (t) => [
+    uniqueIndex("workout_plans_one_active_uq")
+      .on(t.clientId)
+      .where(sql`${t.isActive}`),
+  ],
 );
 
 /** A reusable training session inside a plan (e.g. "PUSH", "PULL", "LEGS"). */
@@ -255,12 +257,11 @@ export const workoutDays = pgTable(
       .notNull()
       .references(() => workoutPlans.id, { onDelete: "cascade" }),
     dayOfWeek: smallint("day_of_week").notNull(),
-    workoutId: uuid("workout_id").references(() => workouts.id, { onDelete: "set null" }),
+    workoutId: uuid("workout_id").references(() => workouts.id, {
+      onDelete: "set null",
+    }),
   },
-  (t) => [
-    uniqueIndex("workout_days_plan_dow_uq").on(t.planId, t.dayOfWeek),
-    check("workout_days_dow_chk", sql`${t.dayOfWeek} BETWEEN 0 AND 6`),
-  ],
+  (t) => [uniqueIndex("workout_days_plan_dow_uq").on(t.planId, t.dayOfWeek), check("workout_days_dow_chk", sql`${t.dayOfWeek} BETWEEN 0 AND 6`)],
 );
 
 export const workoutExercises = pgTable(
@@ -292,10 +293,7 @@ export const workoutSets = pgTable(
     /** Stored canonically in kilograms. */
     targetWeightKg: num("target_weight_kg", 6, 2),
   },
-  (t) => [
-    index("workout_sets_exercise_idx").on(t.exerciseId),
-    check("workout_sets_reps_chk", sql`${t.targetReps} >= 0 AND ${t.targetReps} <= 1000`),
-  ],
+  (t) => [index("workout_sets_exercise_idx").on(t.exerciseId), check("workout_sets_reps_chk", sql`${t.targetReps} >= 0 AND ${t.targetReps} <= 1000`)],
 );
 
 /* ───────────────────────────── workout history (immutable snapshots) ───────────────────────────── */
@@ -308,8 +306,12 @@ export const workoutLogs = pgTable(
       .notNull()
       .references(() => clients.id, { onDelete: "cascade" }),
     date: date("date", { mode: "string" }).notNull(),
-    planId: uuid("plan_id").references(() => workoutPlans.id, { onDelete: "set null" }),
-    workoutId: uuid("workout_id").references(() => workouts.id, { onDelete: "set null" }),
+    planId: uuid("plan_id").references(() => workoutPlans.id, {
+      onDelete: "set null",
+    }),
+    workoutId: uuid("workout_id").references(() => workouts.id, {
+      onDelete: "set null",
+    }),
     title: varchar("title", { length: 80 }).notNull(),
     muscleGroup: varchar("muscle_group", { length: 80 }),
     instructions: text("instructions"),
@@ -403,7 +405,11 @@ export const nutritionPlans = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex("nutrition_plans_one_active_uq").on(t.clientId).where(sql`${t.isActive}`)],
+  (t) => [
+    uniqueIndex("nutrition_plans_one_active_uq")
+      .on(t.clientId)
+      .where(sql`${t.isActive}`),
+  ],
 );
 
 export const meals = pgTable(
@@ -461,8 +467,12 @@ export const mealLogs = pgTable(
       .notNull()
       .references(() => clients.id, { onDelete: "cascade" }),
     date: date("date", { mode: "string" }).notNull(),
-    planId: uuid("plan_id").references(() => nutritionPlans.id, { onDelete: "set null" }),
-    mealId: uuid("meal_id").references(() => meals.id, { onDelete: "set null" }),
+    planId: uuid("plan_id").references(() => nutritionPlans.id, {
+      onDelete: "set null",
+    }),
+    mealId: uuid("meal_id").references(() => meals.id, {
+      onDelete: "set null",
+    }),
     mealName: varchar("meal_name", { length: 80 }).notNull(),
     scheduledTime: time("scheduled_time").notNull(),
     notes: text("notes"),
@@ -479,10 +489,7 @@ export const mealLogs = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [
-    uniqueIndex("meal_logs_client_date_meal_uq").on(t.clientId, t.date, t.mealId),
-    index("meal_logs_client_date_idx").on(t.clientId, t.date),
-  ],
+  (t) => [uniqueIndex("meal_logs_client_date_meal_uq").on(t.clientId, t.date, t.mealId), index("meal_logs_client_date_idx").on(t.clientId, t.date)],
 );
 
 /* ───────────────────────────── progress ───────────────────────────── */
@@ -492,7 +499,9 @@ export const measurementTypes = pgTable(
   {
     id: id(),
     /** NULL ⇒ built-in type available to every coach. */
-    coachId: uuid("coach_id").references(() => users.id, { onDelete: "cascade" }),
+    coachId: uuid("coach_id").references(() => users.id, {
+      onDelete: "cascade",
+    }),
     key: varchar("key", { length: 40 }).notNull(),
     name: varchar("name", { length: 60 }).notNull(),
     kind: measurementKind("kind").notNull(),
@@ -520,7 +529,9 @@ export const measurements = pgTable(
     unit: varchar("unit", { length: 16 }).notNull(),
     measuredOn: date("measured_on", { mode: "string" }).notNull(),
     note: varchar("note", { length: 500 }),
-    recordedById: uuid("recorded_by_id").references(() => users.id, { onDelete: "set null" }),
+    recordedById: uuid("recorded_by_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     createdAt: createdAt(),
   },
   (t) => [index("measurements_client_type_date_idx").on(t.clientId, t.typeId, t.measuredOn)],
@@ -539,10 +550,15 @@ export const progressPhotos = pgTable(
     width: integer("width").notNull(),
     height: integer("height").notNull(),
     sizeBytes: integer("size_bytes").notNull(),
+    /** «قبل» / «بعد». Rows that existed before the split are treated as "after". */
+    phase: photoPhase("phase").notNull().default("after"),
+    /** Photo type (front / side / back / InBody / other). Column keeps its original name. */
     angle: photoAngle("angle").notNull().default("front"),
     takenOn: date("taken_on", { mode: "string" }).notNull(),
     note: varchar("note", { length: 500 }),
-    uploadedById: uuid("uploaded_by_id").references(() => users.id, { onDelete: "set null" }),
+    uploadedById: uuid("uploaded_by_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     createdAt: createdAt(),
   },
   (t) => [index("progress_photos_client_date_idx").on(t.clientId, t.takenOn)],
@@ -554,20 +570,23 @@ export const activityLogs = pgTable(
   "activity_logs",
   {
     id: id(),
-    actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
-    clientId: uuid("client_id").references(() => clients.id, { onDelete: "cascade" }),
+    actorId: uuid("actor_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    clientId: uuid("client_id").references(() => clients.id, {
+      onDelete: "cascade",
+    }),
     /** Owning coach — lets the coach dashboard query activity without joins. */
-    coachId: uuid("coach_id").references(() => users.id, { onDelete: "cascade" }),
+    coachId: uuid("coach_id").references(() => users.id, {
+      onDelete: "cascade",
+    }),
     action: varchar("action", { length: 60 }).notNull(),
     entityType: varchar("entity_type", { length: 40 }),
     entityId: uuid("entity_id"),
     metadata: jsonb("metadata").$type<Record<string, unknown>>(),
     createdAt: createdAt(),
   },
-  (t) => [
-    index("activity_client_created_idx").on(t.clientId, t.createdAt),
-    index("activity_coach_created_idx").on(t.coachId, t.createdAt),
-  ],
+  (t) => [index("activity_client_created_idx").on(t.clientId, t.createdAt), index("activity_coach_created_idx").on(t.coachId, t.createdAt)],
 );
 
 /**
@@ -604,13 +623,17 @@ export const siteSettings = pgTable(
     id: smallint("id").primaryKey().default(1),
     accessCodeEnc: text("access_code_enc"),
     accessVersion: uuid("access_version").notNull().defaultRandom(),
-    updatedById: uuid("updated_by_id").references(() => users.id, { onDelete: "set null" }),
+    updatedById: uuid("updated_by_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
     updatedAt: updatedAt(),
   },
   (t) => [check("site_settings_singleton_chk", sql`${t.id} = 1`)],
 );
 
-const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => "bytea" });
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType: () => "bytea",
+});
 
 /** Private file store used by STORAGE_DRIVER=database (default): photos never live on a public CDN. */
 export const storedFiles = pgTable("stored_files", {
@@ -624,15 +647,33 @@ export const storedFiles = pgTable("stored_files", {
 /* ───────────────────────────── relations ───────────────────────────── */
 
 export const usersRelations = relations(users, ({ one, many }) => ({
-  clientProfile: one(clients, { fields: [users.id], references: [clients.userId], relationName: "clientUser" }),
+  clientProfile: one(clients, {
+    fields: [users.id],
+    references: [clients.userId],
+    relationName: "clientUser",
+  }),
   coachedClients: many(clients, { relationName: "coachClients" }),
-  settings: one(coachSettings, { fields: [users.id], references: [coachSettings.coachId] }),
+  settings: one(coachSettings, {
+    fields: [users.id],
+    references: [coachSettings.coachId],
+  }),
 }));
 
 export const clientsRelations = relations(clients, ({ one, many }) => ({
-  user: one(users, { fields: [clients.userId], references: [users.id], relationName: "clientUser" }),
-  coach: one(users, { fields: [clients.coachId], references: [users.id], relationName: "coachClients" }),
-  permissions: one(clientPermissions, { fields: [clients.id], references: [clientPermissions.clientId] }),
+  user: one(users, {
+    fields: [clients.userId],
+    references: [users.id],
+    relationName: "clientUser",
+  }),
+  coach: one(users, {
+    fields: [clients.coachId],
+    references: [users.id],
+    relationName: "coachClients",
+  }),
+  permissions: one(clientPermissions, {
+    fields: [clients.id],
+    references: [clientPermissions.clientId],
+  }),
   workoutPlans: many(workoutPlans),
   nutritionPlans: many(nutritionPlans),
   workoutLogs: many(workoutLogs),
@@ -642,57 +683,96 @@ export const clientsRelations = relations(clients, ({ one, many }) => ({
 }));
 
 export const clientPermissionsRelations = relations(clientPermissions, ({ one }) => ({
-  client: one(clients, { fields: [clientPermissions.clientId], references: [clients.id] }),
+  client: one(clients, {
+    fields: [clientPermissions.clientId],
+    references: [clients.id],
+  }),
 }));
 
 export const workoutPlansRelations = relations(workoutPlans, ({ one, many }) => ({
-  client: one(clients, { fields: [workoutPlans.clientId], references: [clients.id] }),
+  client: one(clients, {
+    fields: [workoutPlans.clientId],
+    references: [clients.id],
+  }),
   workouts: many(workouts),
   days: many(workoutDays),
 }));
 
 export const workoutsRelations = relations(workouts, ({ one, many }) => ({
-  plan: one(workoutPlans, { fields: [workouts.planId], references: [workoutPlans.id] }),
+  plan: one(workoutPlans, {
+    fields: [workouts.planId],
+    references: [workoutPlans.id],
+  }),
   exercises: many(workoutExercises),
 }));
 
 export const workoutDaysRelations = relations(workoutDays, ({ one }) => ({
-  plan: one(workoutPlans, { fields: [workoutDays.planId], references: [workoutPlans.id] }),
-  workout: one(workouts, { fields: [workoutDays.workoutId], references: [workouts.id] }),
+  plan: one(workoutPlans, {
+    fields: [workoutDays.planId],
+    references: [workoutPlans.id],
+  }),
+  workout: one(workouts, {
+    fields: [workoutDays.workoutId],
+    references: [workouts.id],
+  }),
 }));
 
 export const workoutExercisesRelations = relations(workoutExercises, ({ one, many }) => ({
-  workout: one(workouts, { fields: [workoutExercises.workoutId], references: [workouts.id] }),
+  workout: one(workouts, {
+    fields: [workoutExercises.workoutId],
+    references: [workouts.id],
+  }),
   sets: many(workoutSets),
 }));
 
 export const workoutSetsRelations = relations(workoutSets, ({ one }) => ({
-  exercise: one(workoutExercises, { fields: [workoutSets.exerciseId], references: [workoutExercises.id] }),
+  exercise: one(workoutExercises, {
+    fields: [workoutSets.exerciseId],
+    references: [workoutExercises.id],
+  }),
 }));
 
 export const workoutLogsRelations = relations(workoutLogs, ({ one, many }) => ({
-  client: one(clients, { fields: [workoutLogs.clientId], references: [clients.id] }),
+  client: one(clients, {
+    fields: [workoutLogs.clientId],
+    references: [clients.id],
+  }),
   exercises: many(workoutExerciseLogs),
   sets: many(workoutSetLogs),
 }));
 
 export const workoutExerciseLogsRelations = relations(workoutExerciseLogs, ({ one, many }) => ({
-  log: one(workoutLogs, { fields: [workoutExerciseLogs.workoutLogId], references: [workoutLogs.id] }),
+  log: one(workoutLogs, {
+    fields: [workoutExerciseLogs.workoutLogId],
+    references: [workoutLogs.id],
+  }),
   sets: many(workoutSetLogs),
 }));
 
 export const workoutSetLogsRelations = relations(workoutSetLogs, ({ one }) => ({
-  exercise: one(workoutExerciseLogs, { fields: [workoutSetLogs.exerciseLogId], references: [workoutExerciseLogs.id] }),
-  log: one(workoutLogs, { fields: [workoutSetLogs.workoutLogId], references: [workoutLogs.id] }),
+  exercise: one(workoutExerciseLogs, {
+    fields: [workoutSetLogs.exerciseLogId],
+    references: [workoutExerciseLogs.id],
+  }),
+  log: one(workoutLogs, {
+    fields: [workoutSetLogs.workoutLogId],
+    references: [workoutLogs.id],
+  }),
 }));
 
 export const nutritionPlansRelations = relations(nutritionPlans, ({ one, many }) => ({
-  client: one(clients, { fields: [nutritionPlans.clientId], references: [clients.id] }),
+  client: one(clients, {
+    fields: [nutritionPlans.clientId],
+    references: [clients.id],
+  }),
   meals: many(meals),
 }));
 
 export const mealsRelations = relations(meals, ({ one, many }) => ({
-  plan: one(nutritionPlans, { fields: [meals.planId], references: [nutritionPlans.id] }),
+  plan: one(nutritionPlans, {
+    fields: [meals.planId],
+    references: [nutritionPlans.id],
+  }),
   items: many(mealItems),
 }));
 
@@ -701,7 +781,10 @@ export const mealItemsRelations = relations(mealItems, ({ one }) => ({
 }));
 
 export const mealLogsRelations = relations(mealLogs, ({ one }) => ({
-  client: one(clients, { fields: [mealLogs.clientId], references: [clients.id] }),
+  client: one(clients, {
+    fields: [mealLogs.clientId],
+    references: [clients.id],
+  }),
 }));
 
 export const measurementTypesRelations = relations(measurementTypes, ({ many }) => ({
@@ -709,16 +792,27 @@ export const measurementTypesRelations = relations(measurementTypes, ({ many }) 
 }));
 
 export const measurementsRelations = relations(measurements, ({ one }) => ({
-  client: one(clients, { fields: [measurements.clientId], references: [clients.id] }),
-  type: one(measurementTypes, { fields: [measurements.typeId], references: [measurementTypes.id] }),
+  client: one(clients, {
+    fields: [measurements.clientId],
+    references: [clients.id],
+  }),
+  type: one(measurementTypes, {
+    fields: [measurements.typeId],
+    references: [measurementTypes.id],
+  }),
 }));
 
 export const progressPhotosRelations = relations(progressPhotos, ({ one }) => ({
-  client: one(clients, { fields: [progressPhotos.clientId], references: [clients.id] }),
+  client: one(clients, {
+    fields: [progressPhotos.clientId],
+    references: [clients.id],
+  }),
 }));
 
 export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
   actor: one(users, { fields: [activityLogs.actorId], references: [users.id] }),
-  client: one(clients, { fields: [activityLogs.clientId], references: [clients.id] }),
+  client: one(clients, {
+    fields: [activityLogs.clientId],
+    references: [clients.id],
+  }),
 }));
-

@@ -18,7 +18,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const name = brandName(locale);
   return {
     title: { default: name, template: `%s · ${name}` },
-    description: locale === "ar" ? "منصة الكابتن والعملاء للتمارين والتغذية ومتابعة التقدم." : "Coach and client platform for workouts, nutrition and progress tracking.",
+    description:
+      locale === "ar" ? "منصة الكابتن والعملاء للتمارين والتغذية ومتابعة التقدم." : "Coach and client platform for workouts, nutrition and progress tracking.",
     applicationName: name,
     appleWebApp: { capable: true, title: name, statusBarStyle: "default" },
     formatDetection: { telephone: false },

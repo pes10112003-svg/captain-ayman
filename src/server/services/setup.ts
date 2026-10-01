@@ -8,7 +8,7 @@ import { ValidationError } from "../errors";
 import { hashPassword } from "../auth/password";
 import { assertNotLimited, clearRateLimit, hitRateLimit } from "../auth/rate-limit";
 import { isValidNewAccessCode, setAccessCode } from "../auth/gate";
-import { isValidTimeZone } from "@/lib/time";
+import { FIXED_COACH_SETTINGS } from "@/lib/validation";
 
 /**
  * Admin setup & recovery (/setup). Protected by ADMIN_KEY from the hosting environment — whoever
@@ -16,7 +16,10 @@ import { isValidTimeZone } from "@/lib/time";
  * recover if the coach forgets their password or the site access code.
  */
 export async function setupStatus() {
-  const [row] = await db.select({ n: sql<number>`count(*)`.mapWith(Number) }).from(users).where(eq(users.role, "coach"));
+  const [row] = await db
+    .select({ n: sql<number>`count(*)`.mapWith(Number) })
+    .from(users)
+    .where(eq(users.role, "coach"));
   return { enabled: !!env().ADMIN_KEY, hasCoach: (row?.n ?? 0) > 0 };
 }
 
@@ -39,7 +42,9 @@ export async function runSetup(input: SetupInput, ip: string | null) {
   await assertNotLimited(rlKey, LIMIT);
   if (!safeEqual(input.adminKey, adminKey)) {
     await hitRateLimit(rlKey, LIMIT, WINDOW);
-    throw new ValidationError("The admin key is incorrect.", { adminKey: ["The admin key is incorrect."] });
+    throw new ValidationError("The admin key is incorrect.", {
+      adminKey: ["The admin key is incorrect."],
+    });
   }
   await clearRateLimit(rlKey);
 
@@ -53,15 +58,27 @@ export async function runSetup(input: SetupInput, ip: string | null) {
   if (input.mode === "create") {
     const { hasCoach } = await setupStatus();
     if (hasCoach) throw new ValidationError("A coach account already exists.");
-    const [taken] = await db.select({ id: users.id }).from(users).where(sql`lower(${users.email}) = ${email}`).limit(1);
-    if (taken) throw new ValidationError("That email is already in use.", { email: ["That email is already in use."] });
-    const timezone = isValidTimeZone(env().APP_TIMEZONE) ? env().APP_TIMEZONE : "UTC";
+    const [taken] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(sql`lower(${users.email}) = ${email}`)
+      .limit(1);
+    if (taken)
+      throw new ValidationError("That email is already in use.", {
+        email: ["That email is already in use."],
+      });
     await db.transaction(async (tx) => {
       const [u] = await tx
         .insert(users)
-        .values({ email, name: input.name?.trim() || "Coach", role: "coach", passwordHash, mustChangePassword: false })
+        .values({
+          email,
+          name: input.name?.trim() || "Coach",
+          role: "coach",
+          passwordHash,
+          mustChangePassword: false,
+        })
         .returning({ id: users.id });
-      await tx.insert(coachSettings).values({ coachId: u!.id, timezone });
+      await tx.insert(coachSettings).values({ coachId: u!.id, ...FIXED_COACH_SETTINGS });
     });
   } else {
     const [coach] = await db
@@ -69,8 +86,19 @@ export async function runSetup(input: SetupInput, ip: string | null) {
       .from(users)
       .where(sql`lower(${users.email}) = ${email} AND ${users.role} = 'coach'`)
       .limit(1);
-    if (!coach) throw new ValidationError("No coach account with that email.", { email: ["No coach account with that email."] });
-    await db.update(users).set({ passwordHash, isActive: true, mustChangePassword: false, passwordChangedAt: new Date() }).where(eq(users.id, coach.id));
+    if (!coach)
+      throw new ValidationError("No coach account with that email.", {
+        email: ["No coach account with that email."],
+      });
+    await db
+      .update(users)
+      .set({
+        passwordHash,
+        isActive: true,
+        mustChangePassword: false,
+        passwordChangedAt: new Date(),
+      })
+      .where(eq(users.id, coach.id));
     await db.delete(sessions).where(eq(sessions.userId, coach.id));
   }
 

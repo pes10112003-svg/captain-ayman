@@ -9,17 +9,25 @@ import { ForbiddenError, NotFoundError } from "../errors";
 import { storage } from "../storage";
 import type { Actor } from "../auth/types";
 import { processUpload } from "./images";
-import type { PhotoAngle } from "@/lib/constants";
+import type { PhotoAngle, PhotoPhase } from "@/lib/constants";
 import { isUuid } from "@/lib/utils";
 
 export async function uploadProgressPhoto(
   actor: Actor,
   clientId: string,
   file: File,
-  meta: { angle: PhotoAngle; takenOn: string; note?: string | null },
+  meta: {
+    phase: PhotoPhase;
+    angle: PhotoAngle;
+    takenOn: string;
+    note?: string | null;
+  },
 ) {
   const { client } = await authorizeClient(actor, clientId, "uploadPhotos");
-  const img = await processUpload(file, { maxSide: 1800, thumbSide: 480 });
+  const img = await processUpload(file, {
+    maxSide: meta.angle === "inbody" ? 2600 : 1800,
+    thumbSide: 480,
+  });
 
   const id = randomUUID();
   const storageKey = `clients/${client.id}/photos/${id}.webp`;
@@ -37,6 +45,7 @@ export async function uploadProgressPhoto(
       width: img.width,
       height: img.height,
       sizeBytes: img.main.length,
+      phase: meta.phase,
       angle: meta.angle,
       takenOn: meta.takenOn,
       note: meta.note ?? null,
@@ -54,11 +63,17 @@ export async function uploadProgressPhoto(
     action: actor.role === "coach" ? "coach.photo.uploaded" : "client.photo.uploaded",
     entityType: "progress_photo",
     entityId: id,
-    metadata: { angle: meta.angle, takenOn: meta.takenOn },
+    metadata: { phase: meta.phase, angle: meta.angle, takenOn: meta.takenOn },
   });
   if (actor.role === "client") {
     await touchClient(client.id);
-    await emit({ type: "photo.uploaded_by_client", coachId: client.coachId, clientId: client.id, clientName: client.fullName, photoId: id });
+    await emit({
+      type: "photo.uploaded_by_client",
+      coachId: client.coachId,
+      clientId: client.id,
+      clientName: client.fullName,
+      photoId: id,
+    });
   }
   return { id };
 }
@@ -68,6 +83,7 @@ export async function listPhotos(actor: Actor, clientId: string) {
   return db
     .select({
       id: progressPhotos.id,
+      phase: progressPhotos.phase,
       angle: progressPhotos.angle,
       takenOn: progressPhotos.takenOn,
       note: progressPhotos.note,
@@ -110,7 +126,11 @@ export async function deletePhoto(actor: Actor, clientId: string, photoId: strin
     action: "coach.photo.deleted",
     entityType: "progress_photo",
     entityId: photo.id,
-    metadata: { angle: photo.angle, takenOn: photo.takenOn },
+    metadata: {
+      phase: photo.phase,
+      angle: photo.angle,
+      takenOn: photo.takenOn,
+    },
   });
 }
 
@@ -122,7 +142,10 @@ export async function uploadAvatar(actor: Actor, clientId: string, file: File) {
   const key = `clients/${client.id}/avatar-${randomUUID().slice(0, 8)}.webp`;
   await storage().put(key, img.main, img.mimeType);
   await db.update(clients).set({ avatarKey: key }).where(eq(clients.id, client.id));
-  if (client.avatarKey) await storage().delete(client.avatarKey).catch(() => undefined);
+  if (client.avatarKey)
+    await storage()
+      .delete(client.avatarKey)
+      .catch(() => undefined);
   return { key };
 }
 
@@ -130,7 +153,9 @@ export async function removeAvatar(actor: Actor, clientId: string) {
   const { client } = await authorizeClient(actor, clientId, "editPersonalInfo");
   if (!client.avatarKey) return;
   await db.update(clients).set({ avatarKey: null }).where(eq(clients.id, client.id));
-  await storage().delete(client.avatarKey).catch(() => undefined);
+  await storage()
+    .delete(client.avatarKey)
+    .catch(() => undefined);
 }
 
 export async function readAvatar(actor: Actor, clientId: string) {
@@ -138,5 +163,9 @@ export async function readAvatar(actor: Actor, clientId: string) {
   if (!client.avatarKey) throw new NotFoundError();
   const body = await storage().get(client.avatarKey);
   if (!body) throw new NotFoundError();
-  return { body, mimeType: "image/webp", etag: client.avatarKey.split("avatar-")[1] ?? "" };
+  return {
+    body,
+    mimeType: "image/webp",
+    etag: client.avatarKey.split("avatar-")[1] ?? "",
+  };
 }

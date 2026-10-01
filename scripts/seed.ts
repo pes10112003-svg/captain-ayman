@@ -19,6 +19,7 @@ import { storage } from "@/server/storage";
 import { generateClientCode } from "@/server/services/clients";
 import { addDays, dayOfWeek, diffDays, todayInTz, zonedParts } from "@/lib/time";
 import { bmi } from "@/lib/units";
+import { FIXED_COACH_SETTINGS } from "@/lib/validation";
 import { encrypt } from "@/server/crypto";
 
 if (process.env.NODE_ENV === "production" && process.env.ALLOW_PROD_SEED !== "true") {
@@ -26,7 +27,7 @@ if (process.env.NODE_ENV === "production" && process.env.ALLOW_PROD_SEED !== "tr
   process.exit(1);
 }
 
-const TZ = process.env.APP_TIMEZONE ?? "Africa/Cairo";
+const TZ = FIXED_COACH_SETTINGS.timezone; // the app is fixed to Egypt time
 const COACH_EMAIL = (process.env.SEED_COACH_EMAIL ?? "coach@kinetic.test").toLowerCase();
 const COACH_PASSWORD = process.env.SEED_COACH_PASSWORD ?? "CoachDemo!2026";
 const CLIENT_PASSWORD = process.env.SEED_CLIENT_PASSWORD ?? "ClientDemo!2026";
@@ -63,15 +64,38 @@ function rawLocalToUtc(date: string, minutes: number) {
 }
 
 /* ── plan templates ─────────────────────────────────────────── */
-type Ex = { name: string; sets: number; reps: number; kg: number | null; rest?: number; tempo?: string; notes?: string; video?: string };
-type WorkoutT = { title: string; muscle: string; instructions?: string; ex: Ex[] };
+type Ex = {
+  name: string;
+  sets: number;
+  reps: number;
+  kg: number | null;
+  rest?: number;
+  tempo?: string;
+  notes?: string;
+  video?: string;
+};
+type WorkoutT = {
+  title: string;
+  muscle: string;
+  instructions?: string;
+  ex: Ex[];
+};
 
 const PUSH: WorkoutT = {
   title: "PUSH",
   muscle: "Chest, shoulders & triceps",
   instructions: "Warm up 8–10 min (bike + band pull-aparts). Two ramp-up sets before bench press.",
   ex: [
-    { name: "Bench Press", sets: 3, reps: 12, kg: 40, rest: 120, tempo: "3-1-1-0", notes: "Shoulder blades pinned, feet planted.", video: "https://www.youtube.com/results?search_query=bench+press+form" },
+    {
+      name: "Bench Press",
+      sets: 3,
+      reps: 12,
+      kg: 40,
+      rest: 120,
+      tempo: "3-1-1-0",
+      notes: "Shoulder blades pinned, feet planted.",
+      video: "https://www.youtube.com/results?search_query=bench+press+form",
+    },
     { name: "Incline Dumbbell Press", sets: 3, reps: 10, kg: 18, rest: 90 },
     { name: "Seated Overhead Press", sets: 3, reps: 10, kg: 30, rest: 90 },
     { name: "Cable Lateral Raise", sets: 3, reps: 15, kg: 7.5, rest: 60 },
@@ -82,7 +106,14 @@ const PULL: WorkoutT = {
   title: "PULL",
   muscle: "Back & biceps",
   ex: [
-    { name: "Conventional Deadlift", sets: 3, reps: 5, kg: 90, rest: 180, notes: "Brace hard, bar close to shins." },
+    {
+      name: "Conventional Deadlift",
+      sets: 3,
+      reps: 5,
+      kg: 90,
+      rest: 180,
+      notes: "Brace hard, bar close to shins.",
+    },
     { name: "Lat Pulldown", sets: 3, reps: 12, kg: 50, rest: 90 },
     { name: "Seated Cable Row", sets: 3, reps: 12, kg: 45, rest: 90 },
     { name: "Face Pull", sets: 3, reps: 15, kg: 15, rest: 60 },
@@ -94,10 +125,24 @@ const LEGS: WorkoutT = {
   muscle: "Quads, hamstrings & glutes",
   instructions: "Mobility first: 5 min hips & ankles. Depth before load on squats.",
   ex: [
-    { name: "Back Squat", sets: 4, reps: 8, kg: 70, rest: 150, tempo: "3-0-1-0" },
+    {
+      name: "Back Squat",
+      sets: 4,
+      reps: 8,
+      kg: 70,
+      rest: 150,
+      tempo: "3-0-1-0",
+    },
     { name: "Romanian Deadlift", sets: 3, reps: 10, kg: 60, rest: 120 },
     { name: "Leg Press", sets: 3, reps: 12, kg: 140, rest: 90 },
-    { name: "Walking Lunge", sets: 3, reps: 12, kg: 14, rest: 90, notes: "12 steps per leg." },
+    {
+      name: "Walking Lunge",
+      sets: 3,
+      reps: 12,
+      kg: 14,
+      rest: 90,
+      notes: "12 steps per leg.",
+    },
     { name: "Standing Calf Raise", sets: 4, reps: 15, kg: 40, rest: 45 },
   ],
 };
@@ -147,20 +192,91 @@ const LOWER: WorkoutT = {
 type Item = [name: string, qty: string, kcal: number, p: number, c: number, f: number];
 type MealT = { name: string; time: string; items: Item[]; notes?: string };
 const MEALS_STANDARD: MealT[] = [
-  { name: "Breakfast", time: "08:00", items: [["Eggs", "3 whole", 215, 19, 1, 15], ["Whole-wheat bread", "2 slices", 160, 8, 28, 2], ["Feta cheese", "30 g", 80, 4, 1, 6], ["Cucumber & tomato", "1 bowl", 35, 1, 7, 0]] },
-  { name: "Snack", time: "11:00", items: [["Greek yogurt", "170 g", 100, 17, 6, 0], ["Banana", "1 medium", 105, 1, 27, 0]] },
-  { name: "Lunch", time: "14:00", items: [["Grilled chicken breast", "200 g", 330, 62, 0, 7], ["Basmati rice (cooked)", "150 g", 195, 4, 42, 0], ["Green salad + olive oil", "1 bowl", 90, 1, 5, 7]], notes: "Swap rice for sweet potato on rest days." },
-  { name: "Dinner", time: "20:00", items: [["Tuna in water", "1 can", 120, 26, 0, 1], ["Ful medames", "150 g", 165, 11, 26, 2], ["Baladi bread", "½ loaf", 140, 5, 28, 1]] },
+  {
+    name: "Breakfast",
+    time: "08:00",
+    items: [
+      ["Eggs", "3 whole", 215, 19, 1, 15],
+      ["Whole-wheat bread", "2 slices", 160, 8, 28, 2],
+      ["Feta cheese", "30 g", 80, 4, 1, 6],
+      ["Cucumber & tomato", "1 bowl", 35, 1, 7, 0],
+    ],
+  },
+  {
+    name: "Snack",
+    time: "11:00",
+    items: [
+      ["Greek yogurt", "170 g", 100, 17, 6, 0],
+      ["Banana", "1 medium", 105, 1, 27, 0],
+    ],
+  },
+  {
+    name: "Lunch",
+    time: "14:00",
+    items: [
+      ["Grilled chicken breast", "200 g", 330, 62, 0, 7],
+      ["Basmati rice (cooked)", "150 g", 195, 4, 42, 0],
+      ["Green salad + olive oil", "1 bowl", 90, 1, 5, 7],
+    ],
+    notes: "Swap rice for sweet potato on rest days.",
+  },
+  {
+    name: "Dinner",
+    time: "20:00",
+    items: [
+      ["Tuna in water", "1 can", 120, 26, 0, 1],
+      ["Ful medames", "150 g", 165, 11, 26, 2],
+      ["Baladi bread", "½ loaf", 140, 5, 28, 1],
+    ],
+  },
 ];
 const MEALS_CUT: MealT[] = [
-  { name: "Breakfast", time: "07:30", items: [["Oats", "50 g", 190, 7, 33, 3], ["Whey protein", "1 scoop", 120, 24, 3, 1], ["Blueberries", "80 g", 45, 1, 11, 0]] },
-  { name: "Lunch", time: "13:30", items: [["Grilled salmon", "150 g", 280, 34, 0, 16], ["Quinoa (cooked)", "120 g", 145, 5, 26, 2], ["Roasted vegetables", "1 cup", 70, 2, 12, 2]] },
-  { name: "Snack", time: "16:30", items: [["Cottage cheese", "150 g", 120, 17, 5, 3], ["Apple", "1 medium", 95, 0, 25, 0]] },
-  { name: "Dinner", time: "20:00", items: [["Chicken breast", "150 g", 250, 46, 0, 5], ["Mixed salad", "1 large bowl", 60, 2, 10, 1], ["Avocado", "½", 120, 1, 6, 11]] },
+  {
+    name: "Breakfast",
+    time: "07:30",
+    items: [
+      ["Oats", "50 g", 190, 7, 33, 3],
+      ["Whey protein", "1 scoop", 120, 24, 3, 1],
+      ["Blueberries", "80 g", 45, 1, 11, 0],
+    ],
+  },
+  {
+    name: "Lunch",
+    time: "13:30",
+    items: [
+      ["Grilled salmon", "150 g", 280, 34, 0, 16],
+      ["Quinoa (cooked)", "120 g", 145, 5, 26, 2],
+      ["Roasted vegetables", "1 cup", 70, 2, 12, 2],
+    ],
+  },
+  {
+    name: "Snack",
+    time: "16:30",
+    items: [
+      ["Cottage cheese", "150 g", 120, 17, 5, 3],
+      ["Apple", "1 medium", 95, 0, 25, 0],
+    ],
+  },
+  {
+    name: "Dinner",
+    time: "20:00",
+    items: [
+      ["Chicken breast", "150 g", 250, 46, 0, 5],
+      ["Mixed salad", "1 large bowl", 60, 2, 10, 1],
+      ["Avocado", "½", 120, 1, 6, 11],
+    ],
+  },
 ];
 const MEALS_BULK: MealT[] = [
   ...MEALS_STANDARD.slice(0, 3),
-  { name: "Pre-workout", time: "17:00", items: [["Peanut butter toast", "2 slices", 380, 14, 36, 19], ["Dates", "4 pieces", 110, 1, 30, 0]] },
+  {
+    name: "Pre-workout",
+    time: "17:00",
+    items: [
+      ["Peanut butter toast", "2 slices", 380, 14, 36, 19],
+      ["Dates", "4 pieces", 110, 1, 30, 0],
+    ],
+  },
   MEALS_STANDARD[3]!,
 ];
 
@@ -183,7 +299,12 @@ type ClientSeed = {
   /** Relative weekly schedule: index 0 = the day the seed runs ("today"), 1 = tomorrow, … */
   schedule: (WorkoutT | null)[];
   meals: MealT[] | null;
-  adherence: { workout: number; meal: number; bf?: [number, number]; mm?: [number, number] };
+  adherence: {
+    workout: number;
+    meal: number;
+    bf?: [number, number];
+    mm?: [number, number];
+  };
   today?: { workout: "completed" | "partial" | "none"; meals: number };
   perms?: Partial<import("@/lib/constants").Permissions>;
   photos?: boolean;
@@ -205,7 +326,12 @@ const CLIENTS: ClientSeed[] = [
     daysAgo: 58,
     schedule: [PUSH, null, PULL, null, LEGS, UPPER, null],
     meals: MEALS_STANDARD,
-    adherence: { workout: 0.86, meal: 0.84, bf: [24.5, 20.8], mm: [34.2, 35.0] },
+    adherence: {
+      workout: 0.86,
+      meal: 0.84,
+      bf: [24.5, 20.8],
+      mm: [34.2, 35.0],
+    },
     today: { workout: "partial", meals: 2 },
     photos: true,
   },
@@ -223,7 +349,12 @@ const CLIENTS: ClientSeed[] = [
     daysAgo: 56,
     schedule: [FULL_A, null, FULL_B, null, FULL_A, null, null],
     meals: MEALS_CUT,
-    adherence: { workout: 0.95, meal: 0.92, bf: [28.0, 24.9], mm: [24.1, 25.3] },
+    adherence: {
+      workout: 0.95,
+      meal: 0.92,
+      bf: [28.0, 24.9],
+      mm: [24.1, 25.3],
+    },
     today: { workout: "completed", meals: 3 },
     perms: { uploadPhotos: true, editPersonalInfo: true },
     photos: true,
@@ -337,11 +468,20 @@ async function placeholderPhoto(label: string, week: number, angle: string, hue:
   </svg>`;
   const main = await sharp(Buffer.from(svg)).webp({ quality: 80 }).toBuffer({ resolveWithObject: true });
   const thumb = await sharp(Buffer.from(svg)).resize(480).webp({ quality: 75 }).toBuffer();
-  return { main: main.data, width: main.info.width, height: main.info.height, thumb };
+  return {
+    main: main.data,
+    width: main.info.width,
+    height: main.info.height,
+    thumb,
+  };
 }
 
 async function main() {
-  const [existing] = await db.select({ id: s.users.id }).from(s.users).where(sql`lower(${s.users.email}) = ${COACH_EMAIL}`).limit(1);
+  const [existing] = await db
+    .select({ id: s.users.id })
+    .from(s.users)
+    .where(sql`lower(${s.users.email}) = ${COACH_EMAIL}`)
+    .limit(1);
   if (existing) {
     console.log(`Seed coach ${COACH_EMAIL} already exists — nothing to do. Run "npm run db:reset" to start over.`);
     await pool.end();
@@ -363,13 +503,34 @@ async function main() {
 
   const [coach] = await db
     .insert(s.users)
-    .values({ email: COACH_EMAIL, passwordHash: coachHash, role: "coach", name: "Captain Ayman", lastLoginAt: now })
+    .values({
+      email: COACH_EMAIL,
+      passwordHash: coachHash,
+      role: "coach",
+      name: "Captain Ayman",
+      lastLoginAt: now,
+    })
     .returning();
-  await db.insert(s.coachSettings).values({ coachId: coach!.id, timezone: TZ, businessName: null, weekStartsOn: 6 });
+  await db.insert(s.coachSettings).values({
+    coachId: coach!.id,
+    timezone: TZ,
+    businessName: null,
+    weekStartsOn: 6,
+  });
   await db
     .insert(s.siteSettings)
-    .values({ id: 1, accessCodeEnc: ACCESS_CODE ? encrypt(ACCESS_CODE) : null, accessVersion: randomUUID() })
-    .onConflictDoUpdate({ target: s.siteSettings.id, set: { accessCodeEnc: ACCESS_CODE ? encrypt(ACCESS_CODE) : null, accessVersion: randomUUID() } });
+    .values({
+      id: 1,
+      accessCodeEnc: ACCESS_CODE ? encrypt(ACCESS_CODE) : null,
+      accessVersion: randomUUID(),
+    })
+    .onConflictDoUpdate({
+      target: s.siteSettings.id,
+      set: {
+        accessCodeEnc: ACCESS_CODE ? encrypt(ACCESS_CODE) : null,
+        accessVersion: randomUUID(),
+      },
+    });
 
   const activity: (typeof s.activityLogs.$inferInsert)[] = [];
   const notifications: (typeof s.notifications.$inferInsert)[] = [];
@@ -381,7 +542,14 @@ async function main() {
     c.schedule.forEach((w, i) => (schedule[(todayDow + i) % 7] = w));
     const [user] = await db
       .insert(s.users)
-      .values({ email: c.email, passwordHash: clientHash, role: "client", name: c.name, mustChangePassword: !!c.mustChange, isActive: true })
+      .values({
+        email: c.email,
+        passwordHash: clientHash,
+        role: "client",
+        name: c.name,
+        mustChangePassword: !!c.mustChange,
+        isActive: true,
+      })
       .returning();
     const [client] = await db
       .insert(s.clients)
@@ -407,7 +575,15 @@ async function main() {
       .returning();
     const clientId = client!.id;
     await db.insert(s.clientPermissions).values({ clientId, ...(c.perms ?? {}) });
-    activity.push({ actorId: coach!.id, clientId, coachId: coach!.id, action: "coach.client.created", entityType: "client", entityId: clientId, createdAt: localToUtc(joined, 10 * 60) });
+    activity.push({
+      actorId: coach!.id,
+      clientId,
+      coachId: coach!.id,
+      action: "coach.client.created",
+      entityType: "client",
+      entityId: clientId,
+      createdAt: localToUtc(joined, 10 * 60),
+    });
 
     /* workout plan (current targets) */
     const uniq = [...new Set(schedule.filter(Boolean))] as WorkoutT[];
@@ -417,22 +593,68 @@ async function main() {
     if (uniq.length) {
       const [plan] = await db
         .insert(s.workoutPlans)
-        .values({ clientId, name: uniq.length === 2 ? "Upper / Lower split" : uniq.length >= 3 ? "Push · Pull · Legs" : "Full-body program", notes: "Add 2.5 kg when every set hits the target reps.", contentUpdatedAt: localToUtc(addDays(today, -3), 21 * 60) })
+        .values({
+          clientId,
+          name: uniq.length === 2 ? "Upper / Lower split" : uniq.length >= 3 ? "Push · Pull · Legs" : "Full-body program",
+          notes: "Add 2.5 kg when every set hits the target reps.",
+          contentUpdatedAt: localToUtc(addDays(today, -3), 21 * 60),
+        })
         .returning();
       workoutPlanId = plan!.id;
       for (const [pos, w] of uniq.entries()) {
         const wid = randomUUID();
         workoutIds.set(w, wid);
-        await db.insert(s.workouts).values({ id: wid, planId: plan!.id, title: w.title, muscleGroup: w.muscle, instructions: w.instructions ?? null, position: pos });
+        await db.insert(s.workouts).values({
+          id: wid,
+          planId: plan!.id,
+          title: w.title,
+          muscleGroup: w.muscle,
+          instructions: w.instructions ?? null,
+          position: pos,
+        });
         for (const [i, e] of w.ex.entries()) {
           const eid = randomUUID();
           exerciseIds.set(e, eid);
-          await db.insert(s.workoutExercises).values({ id: eid, workoutId: wid, name: e.name, restSeconds: e.rest ?? null, tempo: e.tempo ?? null, notes: e.notes ?? null, videoUrl: e.video ?? null, position: i });
-          await db.insert(s.workoutSets).values(Array.from({ length: e.sets }, (_, k) => ({ exerciseId: eid, setNumber: k + 1, targetReps: e.reps, targetWeightKg: e.kg })));
+          await db.insert(s.workoutExercises).values({
+            id: eid,
+            workoutId: wid,
+            name: e.name,
+            restSeconds: e.rest ?? null,
+            tempo: e.tempo ?? null,
+            notes: e.notes ?? null,
+            videoUrl: e.video ?? null,
+            position: i,
+          });
+          await db.insert(s.workoutSets).values(
+            Array.from({ length: e.sets }, (_, k) => ({
+              exerciseId: eid,
+              setNumber: k + 1,
+              targetReps: e.reps,
+              targetWeightKg: e.kg,
+            })),
+          );
         }
       }
-      await db.insert(s.workoutDays).values(schedule.map((w, dow) => ({ planId: plan!.id, dayOfWeek: dow, workoutId: w ? workoutIds.get(w)! : null })));
-      activity.push({ actorId: coach!.id, clientId, coachId: coach!.id, action: "coach.workout_plan.updated", entityType: "workout_plan", entityId: plan!.id, metadata: { workouts: uniq.length, trainingDays: schedule.filter(Boolean).length }, createdAt: localToUtc(joined, 11 * 60) });
+      await db.insert(s.workoutDays).values(
+        schedule.map((w, dow) => ({
+          planId: plan!.id,
+          dayOfWeek: dow,
+          workoutId: w ? workoutIds.get(w)! : null,
+        })),
+      );
+      activity.push({
+        actorId: coach!.id,
+        clientId,
+        coachId: coach!.id,
+        action: "coach.workout_plan.updated",
+        entityType: "workout_plan",
+        entityId: plan!.id,
+        metadata: {
+          workouts: uniq.length,
+          trainingDays: schedule.filter(Boolean).length,
+        },
+        createdAt: localToUtc(joined, 11 * 60),
+      });
     }
 
     /* nutrition plan */
@@ -441,16 +663,48 @@ async function main() {
     if (c.meals) {
       const [np] = await db
         .insert(s.nutritionPlans)
-        .values({ clientId, name: c.goal === "muscle_gain" ? "Lean bulk · 2,900 kcal" : c.goal === "fat_loss" ? "Fat-loss plan" : "Balanced plan", notes: "Drink at least 3 L of water daily.", contentUpdatedAt: localToUtc(joined, 11 * 60) })
+        .values({
+          clientId,
+          name: c.goal === "muscle_gain" ? "Lean bulk · 2,900 kcal" : c.goal === "fat_loss" ? "Fat-loss plan" : "Balanced plan",
+          notes: "Drink at least 3 L of water daily.",
+          contentUpdatedAt: localToUtc(joined, 11 * 60),
+        })
         .returning();
       nutritionPlanId = np!.id;
       for (const [pos, m] of c.meals.entries()) {
         const mid = randomUUID();
         mealIds.set(m, mid);
-        await db.insert(s.meals).values({ id: mid, planId: np!.id, name: m.name, scheduledTime: `${m.time}:00`, notes: m.notes ?? null, position: pos });
-        await db.insert(s.mealItems).values(m.items.map(([name, quantity, calories, protein, carbs, fats], i) => ({ mealId: mid, name, quantity, calories, protein, carbs, fats, position: i })));
+        await db.insert(s.meals).values({
+          id: mid,
+          planId: np!.id,
+          name: m.name,
+          scheduledTime: `${m.time}:00`,
+          notes: m.notes ?? null,
+          position: pos,
+        });
+        await db.insert(s.mealItems).values(
+          m.items.map(([name, quantity, calories, protein, carbs, fats], i) => ({
+            mealId: mid,
+            name,
+            quantity,
+            calories,
+            protein,
+            carbs,
+            fats,
+            position: i,
+          })),
+        );
       }
-      activity.push({ actorId: coach!.id, clientId, coachId: coach!.id, action: "coach.nutrition_plan.updated", entityType: "nutrition_plan", entityId: np!.id, metadata: { meals: c.meals.length }, createdAt: localToUtc(joined, 11 * 60 + 20) });
+      activity.push({
+        actorId: coach!.id,
+        clientId,
+        coachId: coach!.id,
+        action: "coach.nutrition_plan.updated",
+        entityType: "nutrition_plan",
+        entityId: np!.id,
+        metadata: { meals: c.meals.length },
+        createdAt: localToUtc(joined, 11 * 60 + 20),
+      });
     }
 
     /* history */
@@ -482,12 +736,26 @@ async function main() {
           const startedAt = done || partialDay ? localToUtc(date, finishMin - int(50, 75)) : null;
           const exRows: (typeof s.workoutExerciseLogs.$inferInsert)[] = [];
           const setRows: (typeof s.workoutSetLogs.$inferInsert)[] = [];
-          let total = 0, completed = 0, partial = 0, targetSum = 0, doneSum = 0;
+          let total = 0,
+            completed = 0,
+            partial = 0,
+            targetSum = 0,
+            doneSum = 0;
           const stopAt = partialDay ? int(4, 8) : Infinity;
           let setIndex = 0;
           for (const [pos, e] of w.ex.entries()) {
             const exId = randomUUID();
-            exRows.push({ id: exId, workoutLogId: logId, sourceExerciseId: exerciseIds.get(e) ?? null, name: e.name, restSeconds: e.rest ?? null, tempo: e.tempo ?? null, notes: e.notes ?? null, videoUrl: e.video ?? null, position: pos });
+            exRows.push({
+              id: exId,
+              workoutLogId: logId,
+              sourceExerciseId: exerciseIds.get(e) ?? null,
+              name: e.name,
+              restSeconds: e.rest ?? null,
+              tempo: e.tempo ?? null,
+              notes: e.notes ?? null,
+              videoUrl: e.video ?? null,
+              position: pos,
+            });
             for (let k = 1; k <= e.sets; k++) {
               setIndex++;
               total++;
@@ -541,14 +809,52 @@ async function main() {
           if (completedAt) {
             touch(completedAt);
             if (diffDays(today, date) <= 14) {
-              activity.push({ actorId: user!.id, clientId, coachId: coach!.id, action: "client.workout.completed", entityType: "workout_log", entityId: logId, metadata: { workout: w.title, completionPercent: pct, date }, createdAt: completedAt });
-              if (diffDays(today, date) <= 1) notifications.push({ userId: coach!.id, type: "workout.completed", title: `${c.name} completed ${w.title}`, body: `Completion ${Math.round(pct)}%`, data: { clientId, logId, clientName: c.name, workout: w.title, pct: Math.round(pct) }, createdAt: completedAt, readAt: isToday ? null : completedAt });
+              activity.push({
+                actorId: user!.id,
+                clientId,
+                coachId: coach!.id,
+                action: "client.workout.completed",
+                entityType: "workout_log",
+                entityId: logId,
+                metadata: { workout: w.title, completionPercent: pct, date },
+                createdAt: completedAt,
+              });
+              if (diffDays(today, date) <= 1)
+                notifications.push({
+                  userId: coach!.id,
+                  type: "workout.completed",
+                  title: `${c.name} completed ${w.title}`,
+                  body: `Completion ${Math.round(pct)}%`,
+                  data: {
+                    clientId,
+                    logId,
+                    clientName: c.name,
+                    workout: w.title,
+                    pct: Math.round(pct),
+                  },
+                  createdAt: completedAt,
+                  readAt: isToday ? null : completedAt,
+                });
             }
           } else if (startedAt) {
             touch(startedAt);
             if (isToday) {
               const lastSet = setRows.filter((r) => r.status !== "pending").at(-1);
-              if (lastSet) activity.push({ actorId: user!.id, clientId, coachId: coach!.id, action: lastSet.status === "partial" ? "client.workout_set.partial" : "client.workout_set.completed", entityType: "workout_set_log", metadata: { workout: w.title, set: lastSet.setNumber, targetReps: lastSet.targetReps, actualReps: lastSet.actualReps }, createdAt: lastSet.completedAt ?? startedAt });
+              if (lastSet)
+                activity.push({
+                  actorId: user!.id,
+                  clientId,
+                  coachId: coach!.id,
+                  action: lastSet.status === "partial" ? "client.workout_set.partial" : "client.workout_set.completed",
+                  entityType: "workout_set_log",
+                  metadata: {
+                    workout: w.title,
+                    set: lastSet.setNumber,
+                    targetReps: lastSet.targetReps,
+                    actualReps: lastSet.actualReps,
+                  },
+                  createdAt: lastSet.completedAt ?? startedAt,
+                });
             }
           }
         }
@@ -563,7 +869,15 @@ async function main() {
           const eaten = isToday ? pos < eatenToday && sched - 20 < nowMinutes : chance(c.adherence.meal);
           const consumedMin = Math.max(5 * 60, Math.min(23 * 60 + 50, Math.round(sched + 12 + gauss() * 22)));
           const consumedAt = eaten ? localToUtc(date, isToday ? Math.min(consumedMin, nowMinutes - 2) : consumedMin) : null;
-          const tot = m.items.reduce((a, it) => ({ k: a.k + it[2], p: a.p + it[3], c: a.c + it[4], f: a.f + it[5] }), { k: 0, p: 0, c: 0, f: 0 });
+          const tot = m.items.reduce(
+            (a, it) => ({
+              k: a.k + it[2],
+              p: a.p + it[3],
+              c: a.c + it[4],
+              f: a.f + it[5],
+            }),
+            { k: 0, p: 0, c: 0, f: 0 },
+          );
           const mealLogId = randomUUID();
           await db.insert(s.mealLogs).values({
             id: mealLogId,
@@ -574,7 +888,14 @@ async function main() {
             mealName: m.name,
             scheduledTime: `${m.time}:00`,
             notes: m.notes ?? null,
-            items: m.items.map(([name, quantity, calories, protein, carbs, fats]) => ({ name, quantity, calories, protein, carbs, fats })),
+            items: m.items.map(([name, quantity, calories, protein, carbs, fats]) => ({
+              name,
+              quantity,
+              calories,
+              protein,
+              carbs,
+              fats,
+            })),
             totalCalories: tot.k,
             totalProtein: tot.p,
             totalCarbs: tot.c,
@@ -587,7 +908,17 @@ async function main() {
           });
           if (consumedAt) {
             touch(consumedAt);
-            if (diffDays(today, date) <= 3) activity.push({ actorId: user!.id, clientId, coachId: coach!.id, action: "client.meal.completed", entityType: "meal_log", entityId: mealLogId, metadata: { meal: m.name, scheduledTime: `${m.time}:00`, date }, createdAt: consumedAt });
+            if (diffDays(today, date) <= 3)
+              activity.push({
+                actorId: user!.id,
+                clientId,
+                coachId: coach!.id,
+                action: "client.meal.completed",
+                entityType: "meal_log",
+                entityId: mealLogId,
+                metadata: { meal: m.name, scheduledTime: `${m.time}:00`, date },
+                createdAt: consumedAt,
+              });
           }
         }
       }
@@ -605,31 +936,115 @@ async function main() {
         const trend = c.startKg + (c.goalKg - c.startKg) * 0.62 * (1 - Math.pow(1 - p, 1.4));
         currentKg = Math.round((wk === 0 ? c.startKg : trend + gauss() * 0.35) * 10) / 10;
         const note = wk === 0 ? "Initial assessment" : null;
-        rows.push({ clientId, typeId: T.weight!.id, value: currentKg, unit: "kg", measuredOn: date, note, recordedById: coach!.id, createdAt: localToUtc(date, 9 * 60) });
-        rows.push({ clientId, typeId: T.bmi!.id, value: bmi(currentKg, c.heightCm)!, unit: "kg/m²", measuredOn: date, note: "Auto-calculated from weight & height", recordedById: coach!.id, createdAt: localToUtc(date, 9 * 60) });
-        if (wk === 0) rows.push({ clientId, typeId: T.height!.id, value: c.heightCm, unit: "cm", measuredOn: date, note, recordedById: coach!.id, createdAt: localToUtc(date, 9 * 60) });
+        rows.push({
+          clientId,
+          typeId: T.weight!.id,
+          value: currentKg,
+          unit: "kg",
+          measuredOn: date,
+          note,
+          recordedById: coach!.id,
+          createdAt: localToUtc(date, 9 * 60),
+        });
+        rows.push({
+          clientId,
+          typeId: T.bmi!.id,
+          value: bmi(currentKg, c.heightCm)!,
+          unit: "kg/m²",
+          measuredOn: date,
+          note: "Auto-calculated from weight & height",
+          recordedById: coach!.id,
+          createdAt: localToUtc(date, 9 * 60),
+        });
+        if (wk === 0)
+          rows.push({
+            clientId,
+            typeId: T.height!.id,
+            value: c.heightCm,
+            unit: "cm",
+            measuredOn: date,
+            note,
+            recordedById: coach!.id,
+            createdAt: localToUtc(date, 9 * 60),
+          });
         if (c.adherence.bf && wk % 2 === 0) {
           const [a, b] = c.adherence.bf;
-          rows.push({ clientId, typeId: T.body_fat!.id, value: Math.round((a + (b - a) * p + gauss() * 0.3) * 10) / 10, unit: "%", measuredOn: date, recordedById: coach!.id, createdAt: localToUtc(date, 9 * 60) });
+          rows.push({
+            clientId,
+            typeId: T.body_fat!.id,
+            value: Math.round((a + (b - a) * p + gauss() * 0.3) * 10) / 10,
+            unit: "%",
+            measuredOn: date,
+            recordedById: coach!.id,
+            createdAt: localToUtc(date, 9 * 60),
+          });
         }
         if (c.adherence.mm && wk % 2 === 0) {
           const [a, b] = c.adherence.mm;
-          rows.push({ clientId, typeId: T.muscle_mass!.id, value: Math.round((a + (b - a) * p + gauss() * 0.2) * 10) / 10, unit: "kg", measuredOn: date, recordedById: coach!.id, createdAt: localToUtc(date, 9 * 60) });
+          rows.push({
+            clientId,
+            typeId: T.muscle_mass!.id,
+            value: Math.round((a + (b - a) * p + gauss() * 0.2) * 10) / 10,
+            unit: "kg",
+            measuredOn: date,
+            recordedById: coach!.id,
+            createdAt: localToUtc(date, 9 * 60),
+          });
         }
         if (wk % 4 === 0) {
           const k = c.goalKg < c.startKg ? -1 : 0.4;
-          const tape: [string, number][] = c.gender === "male" ? [["waist", 92], ["chest", 104], ["arms", 35], ["thighs", 58], ["shoulders", 118]] : [["waist", 76], ["hips", 102], ["arms", 29], ["thighs", 57], ["abdomen", 84]];
+          const tape: [string, number][] =
+            c.gender === "male"
+              ? [
+                  ["waist", 92],
+                  ["chest", 104],
+                  ["arms", 35],
+                  ["thighs", 58],
+                  ["shoulders", 118],
+                ]
+              : [
+                  ["waist", 76],
+                  ["hips", 102],
+                  ["arms", 29],
+                  ["thighs", 57],
+                  ["abdomen", 84],
+                ];
           for (const [key, base] of tape) {
             const scale = base * (1 + (key === "arms" || key === "shoulders" ? 0.02 : 0.05 * k) * p * (c.goalKg < c.startKg ? 1 : 0.5));
-            rows.push({ clientId, typeId: T[key]!.id, value: Math.round(scale * 10) / 10, unit: "cm", measuredOn: date, recordedById: coach!.id, createdAt: localToUtc(date, 9 * 60 + 5) });
+            rows.push({
+              clientId,
+              typeId: T[key]!.id,
+              value: Math.round(scale * 10) / 10,
+              unit: "cm",
+              measuredOn: date,
+              recordedById: coach!.id,
+              createdAt: localToUtc(date, 9 * 60 + 5),
+            });
           }
         }
-        if (wk > 0 && diffDays(today, date) <= 14) activity.push({ actorId: coach!.id, clientId, coachId: coach!.id, action: "coach.measurements.added", entityType: "measurement", metadata: { date, count: 2, types: ["Weight", "BMI"] }, createdAt: localToUtc(date, 9 * 60) });
+        if (wk > 0 && diffDays(today, date) <= 14)
+          activity.push({
+            actorId: coach!.id,
+            clientId,
+            coachId: coach!.id,
+            action: "coach.measurements.added",
+            entityType: "measurement",
+            metadata: { date, count: 2, types: ["Weight", "BMI"] },
+            createdAt: localToUtc(date, 9 * 60),
+          });
       }
       await db.insert(s.measurements).values(rows);
       await db.update(s.clients).set({ currentWeightKg: currentKg }).where(eq(s.clients.id, clientId));
     } else {
-      await db.insert(s.measurements).values({ clientId, typeId: T.weight!.id, value: c.startKg, unit: "kg", measuredOn: joined, note: "Starting weight", recordedById: coach!.id });
+      await db.insert(s.measurements).values({
+        clientId,
+        typeId: T.weight!.id,
+        value: c.startKg,
+        unit: "kg",
+        measuredOn: joined,
+        note: "Starting weight",
+        recordedById: coach!.id,
+      });
     }
 
     /* photos */
@@ -644,7 +1059,22 @@ async function main() {
           const thumbKey = `clients/${clientId}/photos/${id}_thumb.webp`;
           await storage().put(storageKey, img.main, "image/webp");
           await storage().put(thumbKey, img.thumb, "image/webp");
-          await db.insert(s.progressPhotos).values({ id, clientId, storageKey, thumbKey, mimeType: "image/webp", width: img.width, height: img.height, sizeBytes: img.main.length, angle, takenOn: date, note: wk === 0 ? "Initial assessment" : `Week ${wk + 1} check-in`, uploadedById: coach!.id, createdAt: localToUtc(date, 9 * 60 + 10) });
+          await db.insert(s.progressPhotos).values({
+            id,
+            clientId,
+            storageKey,
+            thumbKey,
+            mimeType: "image/webp",
+            width: img.width,
+            height: img.height,
+            sizeBytes: img.main.length,
+            phase: wk === 0 ? "before" : "after",
+            angle,
+            takenOn: date,
+            note: wk === 0 ? "Initial assessment" : `Week ${wk + 1} check-in`,
+            uploadedById: coach!.id,
+            createdAt: localToUtc(date, 9 * 60 + 10),
+          });
         }
       }
     }
@@ -652,8 +1082,19 @@ async function main() {
     const last = lastActivity as Date | null;
     if (last) {
       await db.update(s.clients).set({ lastActivityAt: last }).where(eq(s.clients.id, clientId));
-      await db.update(s.users).set({ lastLoginAt: new Date(last.getTime() - 20 * 60_000) }).where(eq(s.users.id, user!.id));
-      activity.push({ actorId: user!.id, clientId, coachId: coach!.id, action: "auth.login", entityType: "user", entityId: user!.id, createdAt: new Date(last.getTime() - 20 * 60_000) });
+      await db
+        .update(s.users)
+        .set({ lastLoginAt: new Date(last.getTime() - 20 * 60_000) })
+        .where(eq(s.users.id, user!.id));
+      activity.push({
+        actorId: user!.id,
+        clientId,
+        coachId: coach!.id,
+        action: "auth.login",
+        entityType: "user",
+        entityId: user!.id,
+        createdAt: new Date(last.getTime() - 20 * 60_000),
+      });
     }
     console.log(`  ✓ ${c.name.padEnd(16)} ${c.email}`);
   }
@@ -676,4 +1117,3 @@ main().catch(async (err) => {
   await pool.end();
   process.exit(1);
 });
-

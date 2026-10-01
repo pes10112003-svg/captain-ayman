@@ -3,31 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
-import {
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import {
-  ArrowDown,
-  ArrowUp,
-  ChevronDown,
-  Copy,
-  Dumbbell,
-  GripVertical,
-  Link2,
-  Plus,
-  RotateCcw,
-  Save,
-  Trash2,
-  X,
-} from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, Copy, Dumbbell, GripVertical, Link2, Plus, RotateCcw, Save, Trash2, X } from "lucide-react";
 import { saveWorkoutPlanAction } from "@/server/actions/workouts";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
@@ -35,15 +14,36 @@ import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
+import { Disclosure } from "@/components/ui/disclosure";
 import { useI18n } from "@/i18n/client";
 
 /* ── draft types ─────────────────────────────────────────── */
 
 type Num = number | "";
 type SetDraft = { key: string; targetReps: Num; targetWeight: Num };
-type ExerciseDraft = { key: string; name: string; restSeconds: Num; tempo: string; notes: string; videoUrl: string; sets: SetDraft[] };
-type WorkoutDraft = { id: string | null; key: string; title: string; muscleGroup: string; instructions: string; exercises: ExerciseDraft[] };
-type PlanDraft = { name: string; notes: string; workouts: WorkoutDraft[]; schedule: (string | null)[] };
+type ExerciseDraft = {
+  key: string;
+  name: string;
+  restSeconds: Num;
+  tempo: string;
+  notes: string;
+  videoUrl: string;
+  sets: SetDraft[];
+};
+type WorkoutDraft = {
+  id: string | null;
+  key: string;
+  title: string;
+  muscleGroup: string;
+  instructions: string;
+  exercises: ExerciseDraft[];
+};
+type PlanDraft = {
+  name: string;
+  notes: string;
+  workouts: WorkoutDraft[];
+  schedule: (string | null)[];
+};
 
 export type EditorPlan = {
   name: string;
@@ -71,7 +71,13 @@ let counter = 0;
 const uid = () => `k${Date.now().toString(36)}${(counter++).toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 function toDraft(plan: EditorPlan, defaultName: string): PlanDraft {
-  if (!plan) return { name: defaultName, notes: "", workouts: [], schedule: Array(7).fill(null) };
+  if (!plan)
+    return {
+      name: defaultName,
+      notes: "",
+      workouts: [],
+      schedule: Array(7).fill(null),
+    };
   return {
     name: plan.name,
     notes: plan.notes ?? "",
@@ -89,7 +95,11 @@ function toDraft(plan: EditorPlan, defaultName: string): PlanDraft {
         tempo: e.tempo ?? "",
         notes: e.notes ?? "",
         videoUrl: e.videoUrl ?? "",
-        sets: e.sets.map((s) => ({ key: s.key, targetReps: s.targetReps, targetWeight: s.targetWeight ?? "" })),
+        sets: e.sets.map((s) => ({
+          key: s.key,
+          targetReps: s.targetReps,
+          targetWeight: s.targetWeight ?? "",
+        })),
       })),
     })),
   };
@@ -105,7 +115,11 @@ const newExercise = (): ExerciseDraft => ({
   sets: [0, 1, 2].map(() => ({ key: uid(), targetReps: 10, targetWeight: "" })),
 });
 
-const cloneExercise = (e: ExerciseDraft): ExerciseDraft => ({ ...e, key: uid(), sets: e.sets.map((s) => ({ ...s, key: uid() })) });
+const cloneExercise = (e: ExerciseDraft): ExerciseDraft => ({
+  ...e,
+  key: uid(),
+  sets: e.sets.map((s) => ({ ...s, key: uid() })),
+});
 
 const numOrNull = (v: Num) => (v === "" || Number.isNaN(Number(v)) ? null : Number(v));
 
@@ -147,20 +161,35 @@ export function WorkoutPlanEditor({
 
   /* mutators */
   const updateWorkout = (key: string, patch: Partial<WorkoutDraft>) =>
-    setPlan((p) => ({ ...p, workouts: p.workouts.map((w) => (w.key === key ? { ...w, ...patch } : w)) }));
+    setPlan((p) => ({
+      ...p,
+      workouts: p.workouts.map((w) => (w.key === key ? { ...w, ...patch } : w)),
+    }));
 
   const updateExercises = (fn: (list: ExerciseDraft[]) => ExerciseDraft[]) => {
     if (!current) return;
     updateWorkout(current.key, { exercises: fn(current.exercises) });
   };
 
-  const updateExercise = (key: string, patch: Partial<ExerciseDraft>) =>
-    updateExercises((list) => list.map((e) => (e.key === key ? { ...e, ...patch } : e)));
+  const updateExercise = (key: string, patch: Partial<ExerciseDraft>) => updateExercises((list) => list.map((e) => (e.key === key ? { ...e, ...patch } : e)));
 
   const addWorkout = () => {
     const key = uid();
     const title = ["PUSH", "PULL", "LEGS", "UPPER", "LOWER", "FULL BODY"][plan.workouts.length] ?? f(t.workoutEditor.dayN, { n: plan.workouts.length + 1 });
-    setPlan((p) => ({ ...p, workouts: [...p.workouts, { id: null, key, title, muscleGroup: "", instructions: "", exercises: [newExercise()] }] }));
+    setPlan((p) => ({
+      ...p,
+      workouts: [
+        ...p.workouts,
+        {
+          id: null,
+          key,
+          title,
+          muscleGroup: "",
+          instructions: "",
+          exercises: [newExercise()],
+        },
+      ],
+    }));
     setSelected(key);
   };
 
@@ -168,7 +197,16 @@ export function WorkoutPlanEditor({
     const key = uid();
     setPlan((p) => ({
       ...p,
-      workouts: [...p.workouts, { ...w, id: null, key, title: `${w.title}${t.workoutEditor.copySuffix}`.slice(0, 80), exercises: w.exercises.map(cloneExercise) }],
+      workouts: [
+        ...p.workouts,
+        {
+          ...w,
+          id: null,
+          key,
+          title: `${w.title}${t.workoutEditor.copySuffix}`.slice(0, 80),
+          exercises: w.exercises.map(cloneExercise),
+        },
+      ],
     }));
     setSelected(key);
     toast.success(f(t.workoutEditor.duplicated, { name: w.title }));
@@ -186,7 +224,9 @@ export function WorkoutPlanEditor({
   const dndId = useId();
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
   const onDragEnd = (e: DragEndEvent) => {
     if (!e.over || e.active.id === e.over.id) return;
@@ -204,10 +244,28 @@ export function WorkoutPlanEditor({
     plan.workouts.forEach((w) => {
       if (!w.title.trim()) errs.push(we.errTitle);
       w.exercises.forEach((e, i) => {
-        if (!e.name.trim()) errs.push(f(we.errExerciseName, { workout: w.title || t.overview.workout, n: i + 1 }));
-        if (!e.sets.length) errs.push(f(we.errSets, { workout: w.title, exercise: e.name || `${we.exercise} #${i + 1}` }));
+        if (!e.name.trim())
+          errs.push(
+            f(we.errExerciseName, {
+              workout: w.title || t.overview.workout,
+              n: i + 1,
+            }),
+          );
+        if (!e.sets.length)
+          errs.push(
+            f(we.errSets, {
+              workout: w.title,
+              exercise: e.name || `${we.exercise} #${i + 1}`,
+            }),
+          );
         e.sets.forEach((s) => {
-          if (s.targetReps === "" || Number(s.targetReps) < 0) errs.push(f(we.errReps, { workout: w.title, exercise: e.name || we.exercise }));
+          if (s.targetReps === "" || Number(s.targetReps) < 0)
+            errs.push(
+              f(we.errReps, {
+                workout: w.title,
+                exercise: e.name || we.exercise,
+              }),
+            );
         });
         if (e.videoUrl && !/^https?:\/\//i.test(e.videoUrl)) errs.push(f(we.errVideo, { exercise: e.name }));
       });
@@ -238,7 +296,10 @@ export function WorkoutPlanEditor({
           tempo: e.tempo.trim() || null,
           notes: e.notes.trim() || null,
           videoUrl: e.videoUrl.trim() || null,
-          sets: e.sets.map((s) => ({ targetReps: Number(s.targetReps), targetWeight: numOrNull(s.targetWeight) })),
+          sets: e.sets.map((s) => ({
+            targetReps: Number(s.targetReps),
+            targetWeight: numOrNull(s.targetWeight),
+          })),
         })),
       })),
     };
@@ -296,7 +357,12 @@ export function WorkoutPlanEditor({
       </Card>
 
       <Card>
-        <CardHeader title={t.workoutEditor.schedule} description={f(t.workoutEditor.scheduleSub, { n: fmt.num(trainingDays, 0) })} />
+        <CardHeader
+          title={t.workoutEditor.schedule}
+          description={f(t.workoutEditor.scheduleSub, {
+            n: fmt.num(trainingDays, 0),
+          })}
+        />
         <CardBody>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
             {dayOrder.map((dow) => {
@@ -311,9 +377,16 @@ export function WorkoutPlanEditor({
                     <span className="hidden sm:inline lg:hidden">{fmt.weekdayName(dow, "short")}</span>
                   </span>
                   <Select
-                    aria-label={f(t.workoutEditor.dayWorkout, { day: fmt.weekdayName(dow, "long") })}
+                    aria-label={f(t.workoutEditor.dayWorkout, {
+                      day: fmt.weekdayName(dow, "long"),
+                    })}
                     value={value ?? ""}
-                    onChange={(e) => setPlan((p) => ({ ...p, schedule: p.schedule.map((k, i) => (i === dow ? e.target.value || null : k)) }))}
+                    onChange={(e) =>
+                      setPlan((p) => ({
+                        ...p,
+                        schedule: p.schedule.map((k, i) => (i === dow ? e.target.value || null : k)),
+                      }))
+                    }
                     className="h-9 text-[13px] font-semibold"
                   >
                     <option value="">{t.workoutEditor.rest}</option>
@@ -367,7 +440,17 @@ export function WorkoutPlanEditor({
             <Card>
               <CardBody className="grid gap-4 sm:grid-cols-2">
                 <Field label={t.workoutEditor.title} htmlFor="w-title">
-                  <Input id="w-title" value={current.title} maxLength={80} onChange={(e) => updateWorkout(current.key, { title: e.target.value.toUpperCase() })} className="font-semibold tracking-wide" />
+                  <Input
+                    id="w-title"
+                    value={current.title}
+                    maxLength={80}
+                    onChange={(e) =>
+                      updateWorkout(current.key, {
+                        title: e.target.value.toUpperCase(),
+                      })
+                    }
+                    className="font-semibold tracking-wide"
+                  />
                 </Field>
                 <Field label={t.workoutEditor.muscleGroup} htmlFor="w-mg" optional>
                   <Input
@@ -375,7 +458,11 @@ export function WorkoutPlanEditor({
                     list="muscle-groups"
                     value={current.muscleGroup}
                     maxLength={80}
-                    onChange={(e) => updateWorkout(current.key, { muscleGroup: e.target.value })}
+                    onChange={(e) =>
+                      updateWorkout(current.key, {
+                        muscleGroup: e.target.value,
+                      })
+                    }
                     placeholder={t.workoutEditor.muscleGroupPh}
                   />
                   <datalist id="muscle-groups">
@@ -390,7 +477,11 @@ export function WorkoutPlanEditor({
                     rows={2}
                     value={current.instructions}
                     maxLength={4000}
-                    onChange={(e) => updateWorkout(current.key, { instructions: e.target.value })}
+                    onChange={(e) =>
+                      updateWorkout(current.key, {
+                        instructions: e.target.value,
+                      })
+                    }
                     placeholder={t.workoutEditor.instructionsPh}
                   />
                 </Field>
@@ -399,7 +490,9 @@ export function WorkoutPlanEditor({
                     <Copy /> {t.workoutEditor.duplicateDay}
                   </Button>
                   <ConfirmDialog
-                    title={f(t.workoutEditor.deleteDayTitle, { name: current.title || t.workoutEditor.untitled })}
+                    title={f(t.workoutEditor.deleteDayTitle, {
+                      name: current.title || t.workoutEditor.untitled,
+                    })}
                     description={t.workoutEditor.deleteDayText}
                     confirmLabel={t.workoutEditor.deleteWorkout}
                     onConfirm={() => removeWorkout(current)}
@@ -510,7 +603,10 @@ function SortableExercise({
   const { t, f, fmt } = useI18n();
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: e.key });
   const [open, setOpen] = useState(!e.name);
-  const setSet = (key: string, patch: Partial<SetDraft>) => onChange({ sets: e.sets.map((s) => (s.key === key ? { ...s, ...patch } : s)) });
+  const setSet = (key: string, patch: Partial<SetDraft>) =>
+    onChange({
+      sets: e.sets.map((s) => (s.key === key ? { ...s, ...patch } : s)),
+    });
   const parse = (v: string): Num => (v === "" ? "" : Number(v));
   const summary = e.sets.length
     ? `${f(t.workoutEditor.summary, { sets: fmt.num(e.sets.length, 0), reps: [...new Set(e.sets.map((s) => s.targetReps))].join("/") })}${
@@ -533,7 +629,9 @@ function SortableExercise({
           {...attributes}
           {...listeners}
           className="grid size-8 shrink-0 cursor-grab touch-none place-items-center rounded-lg text-muted hover:bg-surface-2 active:cursor-grabbing"
-          aria-label={f(t.workoutEditor.reorder, { name: e.name || t.workoutEditor.exercise })}
+          aria-label={f(t.workoutEditor.reorder, {
+            name: e.name || t.workoutEditor.exercise,
+          })}
         >
           <GripVertical className="size-4" />
         </button>
@@ -550,10 +648,24 @@ function SortableExercise({
           {!open ? <p className="px-1 text-xs text-muted">{summary}</p> : null}
         </div>
         <div className="flex shrink-0 items-center">
-          <Button variant="ghost" size="icon-sm" onClick={() => onMove(-1)} disabled={index === 0} aria-label={t.workoutEditor.moveUp} className="hidden sm:inline-flex">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => onMove(-1)}
+            disabled={index === 0}
+            aria-label={t.workoutEditor.moveUp}
+            className="hidden sm:inline-flex"
+          >
             <ArrowUp />
           </Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => onMove(1)} disabled={index === count - 1} aria-label={t.workoutEditor.moveDown} className="hidden sm:inline-flex">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => onMove(1)}
+            disabled={index === count - 1}
+            aria-label={t.workoutEditor.moveDown}
+            className="hidden sm:inline-flex"
+          >
             <ArrowDown />
           </Button>
           <Button variant="ghost" size="icon-sm" onClick={onDuplicate} aria-label={t.workoutEditor.duplicateExercise}>
@@ -562,7 +674,13 @@ function SortableExercise({
           <Button variant="ghost" size="icon-sm" onClick={onRemove} aria-label={t.workoutEditor.deleteExercise} className="text-crit-text hover:bg-crit-soft">
             <Trash2 />
           </Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setOpen((o) => !o)} aria-label={open ? t.workoutEditor.collapse : t.workoutEditor.expand} aria-expanded={open}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setOpen((o) => !o)}
+            aria-label={open ? t.workoutEditor.collapse : t.workoutEditor.expand}
+            aria-expanded={open}
+          >
             <ChevronDown className={cn("transition-transform", open && "rotate-180")} />
           </Button>
         </div>
@@ -574,9 +692,13 @@ function SortableExercise({
             <table className="w-full text-sm">
               <thead className="bg-surface-2 text-xs text-muted">
                 <tr>
-                  <th className="w-14 py-2 ps-3 text-start font-medium">{t.workoutEditor.set}</th>
+                  <th className="w-20 py-2 ps-3 pe-2 text-start font-medium">{t.workoutEditor.set}</th>
                   <th className="py-2 text-start font-medium">{t.workoutEditor.targetReps}</th>
-                  <th className="py-2 text-start font-medium">{f(t.workoutEditor.weightUnit, { unit: fmt.unit(weightUnit) })}</th>
+                  <th className="py-2 text-start font-medium">
+                    {f(t.workoutEditor.weightUnit, {
+                      unit: fmt.unit(weightUnit),
+                    })}
+                  </th>
                   <th className="w-10" />
                 </tr>
               </thead>
@@ -592,7 +714,9 @@ function SortableExercise({
                         max={1000}
                         value={s.targetReps}
                         onChange={(ev) => setSet(s.key, { targetReps: parse(ev.target.value) })}
-                        aria-label={f(t.workoutEditor.setTargetReps, { n: i + 1 })}
+                        aria-label={f(t.workoutEditor.setTargetReps, {
+                          n: i + 1,
+                        })}
                         className="h-9 w-full max-w-28 rounded-lg border border-line bg-surface px-2.5 tabular outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
                       />
                     </td>
@@ -604,7 +728,11 @@ function SortableExercise({
                         step="0.5"
                         value={s.targetWeight}
                         placeholder={t.workoutEditor.bodyweightPh}
-                        onChange={(ev) => setSet(s.key, { targetWeight: parse(ev.target.value) })}
+                        onChange={(ev) =>
+                          setSet(s.key, {
+                            targetWeight: parse(ev.target.value),
+                          })
+                        }
                         aria-label={f(t.workoutEditor.setWeight, { n: i + 1 })}
                         className="h-9 w-full max-w-32 rounded-lg border border-line bg-surface px-2.5 tabular outline-none placeholder:text-xs placeholder:text-muted focus:border-ring focus:ring-2 focus:ring-ring/20"
                       />
@@ -612,7 +740,11 @@ function SortableExercise({
                     <td className="pe-1.5 text-end">
                       <button
                         type="button"
-                        onClick={() => onChange({ sets: e.sets.filter((x) => x.key !== s.key) })}
+                        onClick={() =>
+                          onChange({
+                            sets: e.sets.filter((x) => x.key !== s.key),
+                          })
+                        }
                         className="grid size-8 place-items-center rounded-lg text-muted hover:bg-crit-soft hover:text-crit-text"
                         aria-label={f(t.workoutEditor.removeSet, { n: i + 1 })}
                       >
@@ -627,7 +759,16 @@ function SortableExercise({
               type="button"
               onClick={() => {
                 const last = e.sets[e.sets.length - 1];
-                onChange({ sets: [...e.sets, { key: uid(), targetReps: last?.targetReps ?? 10, targetWeight: last?.targetWeight ?? "" }] });
+                onChange({
+                  sets: [
+                    ...e.sets,
+                    {
+                      key: uid(),
+                      targetReps: last?.targetReps ?? 10,
+                      targetWeight: last?.targetWeight ?? "",
+                    },
+                  ],
+                });
               }}
               className="flex w-full items-center justify-center gap-1.5 border-t border-line bg-surface-2/50 py-2 text-[13px] font-medium text-ink-2 hover:bg-surface-2 hover:text-ink"
             >
@@ -635,23 +776,44 @@ function SortableExercise({
             </button>
           </div>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <Field label={t.workoutEditor.restSeconds} optional>
-              <Input type="number" inputMode="numeric" min={0} max={3600} value={e.restSeconds} onChange={(ev) => onChange({ restSeconds: parse(ev.target.value) })} />
-            </Field>
-            <Field label={t.workoutEditor.tempo} optional>
-              <Input value={e.tempo} maxLength={20} placeholder="3-1-1-0" dir="ltr" onChange={(ev) => onChange({ tempo: ev.target.value })} />
-            </Field>
-            <Field label={t.workoutEditor.video} optional>
-              <div className="relative" dir="ltr">
-                <Link2 className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
-                <Input value={e.videoUrl} maxLength={500} placeholder="https://…" className="ps-9" onChange={(ev) => onChange({ videoUrl: ev.target.value })} />
-              </div>
-            </Field>
-            <Field label={t.workoutEditor.cues} optional className="sm:col-span-3">
-              <Textarea rows={2} value={e.notes} maxLength={2000} placeholder={t.workoutEditor.cuesPh} onChange={(ev) => onChange({ notes: ev.target.value })} />
-            </Field>
-          </div>
+          <Disclosure title={t.common.moreOptions} defaultOpen={!!(e.tempo || e.videoUrl || e.notes)} className="mt-3">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Field label={t.workoutEditor.restSeconds} optional>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={3600}
+                  value={e.restSeconds}
+                  onChange={(ev) => onChange({ restSeconds: parse(ev.target.value) })}
+                />
+              </Field>
+              <Field label={t.workoutEditor.tempo} optional>
+                <Input value={e.tempo} maxLength={20} placeholder="3-1-1-0" dir="ltr" onChange={(ev) => onChange({ tempo: ev.target.value })} />
+              </Field>
+              <Field label={t.workoutEditor.video} optional>
+                <div className="relative" dir="ltr">
+                  <Link2 className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
+                  <Input
+                    value={e.videoUrl}
+                    maxLength={500}
+                    placeholder="https://…"
+                    className="ps-9"
+                    onChange={(ev) => onChange({ videoUrl: ev.target.value })}
+                  />
+                </div>
+              </Field>
+              <Field label={t.workoutEditor.cues} optional className="sm:col-span-3">
+                <Textarea
+                  rows={2}
+                  value={e.notes}
+                  maxLength={2000}
+                  placeholder={t.workoutEditor.cuesPh}
+                  onChange={(ev) => onChange({ notes: ev.target.value })}
+                />
+              </Field>
+            </div>
+          </Disclosure>
         </div>
       ) : null}
     </li>

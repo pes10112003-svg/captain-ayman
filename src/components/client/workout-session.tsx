@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Check, CheckCircle2, ExternalLink, Info, Loader2, Lock, Minus, PartyPopper, Plus, Timer } from "lucide-react";
 import { completeWorkoutAction, recordSetAction } from "@/server/actions/workouts";
+import { celebrate } from "@/lib/celebrate";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/dialog";
 import { ProgressBar } from "@/components/ui/progress";
@@ -12,8 +13,23 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n/client";
 
 type SetStatus = "pending" | "completed" | "partial" | "skipped";
-export type SessionSet = { id: string; setNumber: number; targetReps: number; weightLabel: string | null; actualReps: number | null; status: SetStatus };
-export type SessionExercise = { id: string; name: string; notes: string | null; tempo: string | null; restSeconds: number | null; videoUrl: string | null; sets: SessionSet[] };
+export type SessionSet = {
+  id: string;
+  setNumber: number;
+  targetReps: number;
+  weightLabel: string | null;
+  actualReps: number | null;
+  status: SetStatus;
+};
+export type SessionExercise = {
+  id: string;
+  name: string;
+  notes: string | null;
+  tempo: string | null;
+  restSeconds: number | null;
+  videoUrl: string | null;
+  sets: SessionSet[];
+};
 
 type LocalSet = SessionSet & { draftReps: number; saving: boolean };
 
@@ -45,7 +61,9 @@ export function WorkoutSession({
   const [sets, setSets] = useState<Record<string, LocalSet>>(() =>
     Object.fromEntries(exercises.flatMap((e) => e.sets.map((s) => [s.id, { ...s, draftReps: s.actualReps ?? s.targetReps, saving: false }]))),
   );
-  const [done, setDone] = useState<{ at: string; pct: number } | null>(status === "completed" && completedAt ? { at: completedAt, pct: completionPercent } : null);
+  const [done, setDone] = useState<{ at: string; pct: number } | null>(
+    status === "completed" && completedAt ? { at: completedAt, pct: completionPercent } : null,
+  );
   const [completing, startCompleting] = useTransition();
   const debounce = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const readOnly = !!done || !canComplete;
@@ -63,21 +81,44 @@ export function WorkoutSession({
   async function persist(id: string, next: { done: boolean; reps: number }) {
     const prev = sets[id]!;
     const status: SetStatus = !next.done ? "pending" : next.reps === 0 ? "skipped" : next.reps >= prev.targetReps ? "completed" : "partial";
-    setSets((s) => ({ ...s, [id]: { ...s[id]!, status, actualReps: next.done ? next.reps : null, draftReps: next.reps, saving: true } }));
+    setSets((s) => ({
+      ...s,
+      [id]: {
+        ...s[id]!,
+        status,
+        actualReps: next.done ? next.reps : null,
+        draftReps: next.reps,
+        saving: true,
+      },
+    }));
     if (next.done && typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate?.(12);
-    const res = await recordSetAction(id, { done: next.done, actualReps: next.done ? next.reps : null });
+    const res = await recordSetAction(id, {
+      done: next.done,
+      actualReps: next.done ? next.reps : null,
+    });
     if (!res.ok) {
       setSets((s) => ({ ...s, [id]: { ...prev, saving: false } }));
       toast.error(res.error);
       if (res.code === "not_found" || res.code === "conflict") router.refresh();
       return;
     }
-    setSets((s) => ({ ...s, [id]: { ...s[id]!, status: res.data.set.status, actualReps: res.data.set.actualReps, saving: false } }));
+    setSets((s) => ({
+      ...s,
+      [id]: {
+        ...s[id]!,
+        status: res.data.set.status,
+        actualReps: res.data.set.actualReps,
+        saving: false,
+      },
+    }));
   }
 
   const toggle = (s: LocalSet) => {
     if (readOnly || s.saving) return;
-    void persist(s.id, { done: s.status === "pending", reps: canEnterReps ? s.draftReps : s.targetReps });
+    void persist(s.id, {
+      done: s.status === "pending",
+      reps: canEnterReps ? s.draftReps : s.targetReps,
+    });
   };
 
   const changeReps = (s: LocalSet, value: number) => {
@@ -97,6 +138,8 @@ export function WorkoutSession({
       return false;
     }
     setDone({ at: res.data.completedAt, pct: res.data.completionPercent });
+    celebrate();
+    if ("vibrate" in navigator) navigator.vibrate?.([20, 40, 30]);
     toast.success(t.session.completeToast);
     router.refresh();
   };
@@ -105,7 +148,12 @@ export function WorkoutSession({
     <div className="space-y-4">
       <div className="sticky top-14 z-20 -mx-4 border-b border-line/70 bg-page/90 px-4 py-3 backdrop-blur-xl md:top-16">
         <div className="flex items-center justify-between text-sm">
-          <span className="font-medium">{f(t.session.sets, { done: fmt.num(recorded, 0), total: fmt.num(all.length, 0) })}</span>
+          <span className="font-medium">
+            {f(t.session.sets, {
+              done: fmt.num(recorded, 0),
+              total: fmt.num(all.length, 0),
+            })}
+          </span>
           <span className="font-semibold tabular">{fmt.pct(Math.round(done?.pct ?? pct))}</span>
         </div>
         <ProgressBar value={done?.pct ?? pct} tone="ink" className="mt-2" label={t.clientHome.progress} />
@@ -116,7 +164,12 @@ export function WorkoutSession({
           <PartyPopper className="size-6 shrink-0" />
           <div>
             <p className="font-semibold">{t.session.completedTitle}</p>
-            <p className="text-sm">{f(t.session.completedText, { time: fmt.time(done.at, timezone), pct: fmt.num(Math.round(done.pct), 0) })}</p>
+            <p className="text-sm">
+              {f(t.session.completedText, {
+                time: fmt.time(done.at, timezone),
+                pct: fmt.num(Math.round(done.pct), 0),
+              })}
+            </p>
           </div>
         </div>
       ) : !canComplete ? (
@@ -134,13 +187,21 @@ export function WorkoutSession({
           return (
             <li key={e.id} className={cn("overflow-hidden rounded-3xl border bg-surface shadow-card transition", exDone ? "border-good/40" : "border-line")}>
               <div className="flex items-start gap-3 p-4 pb-3">
-                <span className={cn("grid size-8 shrink-0 place-items-center rounded-xl text-sm font-bold", exDone ? "bg-good text-white" : "bg-surface-2 text-ink-2")}>
+                <span
+                  className={cn(
+                    "grid size-8 shrink-0 place-items-center rounded-xl text-sm font-bold",
+                    exDone ? "bg-good text-white" : "bg-surface-2 text-ink-2",
+                  )}
+                >
                   {exDone ? <Check className="size-4" strokeWidth={3} /> : idx + 1}
                 </span>
                 <div className="min-w-0 flex-1">
                   <h3 className="text-[17px] font-semibold leading-tight">{e.name}</h3>
                   <p className="mt-0.5 text-sm text-ink-2">
-                    {f(t.session.target, { sets: fmt.num(e.sets.length, 0), reps })}
+                    {f(t.session.target, {
+                      sets: fmt.num(e.sets.length, 0),
+                      reps,
+                    })}
                     {weights ? ` · ${weights}` : ""}
                   </p>
                   <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
@@ -157,7 +218,12 @@ export function WorkoutSession({
                     ) : null}
                     {e.tempo ? <span>{f(t.session.tempo, { v: e.tempo })}</span> : null}
                     {e.videoUrl ? (
-                      <a href={e.videoUrl} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1 font-medium text-info-text">
+                      <a
+                        href={e.videoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer nofollow"
+                        className="inline-flex items-center gap-1 font-medium text-info-text"
+                      >
                         <ExternalLink className="size-3" /> {t.session.demo}
                       </a>
                     ) : null}
@@ -165,7 +231,9 @@ export function WorkoutSession({
                   {e.notes ? (
                     <p className="mt-2 flex gap-1.5 rounded-xl bg-surface-2 px-3 py-2 text-xs text-ink-2">
                       <Info className="mt-px size-3.5 shrink-0" />
-                      <span dir="auto" className="min-w-0 flex-1 text-start">{e.notes}</span>
+                      <span dir="auto" className="min-w-0 flex-1 text-start">
+                        {e.notes}
+                      </span>
                     </p>
                   ) : null}
                 </div>
@@ -175,7 +243,10 @@ export function WorkoutSession({
                   const isDone = s.status !== "pending";
                   const partial = s.status === "partial" || s.status === "skipped";
                   return (
-                    <li key={s.id} className={cn("flex items-center gap-3 px-4 py-2.5 transition-colors", isDone && (partial ? "bg-warn-soft/60" : "bg-good-soft/50"))}>
+                    <li
+                      key={s.id}
+                      className={cn("flex items-center gap-3 px-4 py-2.5 transition-colors", isDone && (partial ? "bg-warn-soft/60" : "bg-good-soft/50"))}
+                    >
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold">{f(t.session.set, { n: s.setNumber })}</p>
                         <p className="truncate text-[11px] text-muted">
@@ -191,7 +262,9 @@ export function WorkoutSession({
                               onClick={() => changeReps(s, s.draftReps - 1)}
                               disabled={s.draftReps <= 0}
                               className="grid size-10 place-items-center text-ink-2 disabled:opacity-30"
-                              aria-label={f(t.session.fewer, { n: s.setNumber })}
+                              aria-label={f(t.session.fewer, {
+                                n: s.setNumber,
+                              })}
                             >
                               <Minus className="size-4" />
                             </button>
@@ -206,7 +279,10 @@ export function WorkoutSession({
                               max={999}
                               value={s.draftReps}
                               onChange={(ev) => changeReps(s, Number(ev.target.value || 0))}
-                              className={cn("h-10 w-10 bg-transparent text-center text-base font-semibold tabular outline-none", s.draftReps < s.targetReps && "text-warn-text")}
+                              className={cn(
+                                "h-10 w-10 bg-transparent text-center text-base font-semibold tabular outline-none",
+                                s.draftReps < s.targetReps && "text-warn-text",
+                              )}
                             />
                             <button
                               type="button"
@@ -266,7 +342,13 @@ export function WorkoutSession({
               }
             />
           ) : (
-            <Button size="xl" variant="brand" className="w-full shadow-pop" loading={completing} onClick={() => startCompleting(async () => void (await complete()))}>
+            <Button
+              size="xl"
+              variant="brand"
+              className="w-full shadow-pop"
+              loading={completing}
+              onClick={() => startCompleting(async () => void (await complete()))}
+            >
               {!completing ? <CheckCircle2 /> : null} {t.session.complete}
             </Button>
           )}

@@ -14,7 +14,6 @@ const schema = z.object({
   AUTH_SECRET: z.string().min(32, "AUTH_SECRET must be at least 32 characters").optional(),
   /** Enables /setup (first coach account + recovery). Keep it secret; remove it to disable the page. */
   ADMIN_KEY: z.string().min(16, "ADMIN_KEY must be at least 16 characters").optional(),
-  APP_TIMEZONE: z.string().default("UTC"),
   SESSION_TTL_DAYS: z.coerce.number().int().min(1).max(365).default(30),
   CRON_SECRET: z.string().optional(),
   TRUST_PROXY: bool,

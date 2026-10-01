@@ -14,27 +14,98 @@ export const GOALS = {
 export type Goal = keyof typeof GOALS;
 export const GOAL_KEYS = Object.keys(GOALS) as Goal[];
 
-export const GENDERS = { male: "Male", female: "Female", other: "Other", unspecified: "Prefer not to say" } as const;
+export const GENDERS = {
+  male: "Male",
+  female: "Female",
+  other: "Other",
+  unspecified: "Prefer not to say",
+} as const;
 export type Gender = keyof typeof GENDERS;
 export const GENDER_KEYS = Object.keys(GENDERS) as Gender[];
 
-export const PHOTO_ANGLES = { front: "Front", side: "Side", back: "Back", other: "Other" } as const;
+/** Progress photo type (DB enum `photo_angle`): body angles, an InBody report, or anything else. */
+export const PHOTO_ANGLES = {
+  front: "Front",
+  side: "Side",
+  back: "Back",
+  inbody: "InBody",
+  other: "Other",
+} as const;
 export type PhotoAngle = keyof typeof PHOTO_ANGLES;
 export const PHOTO_ANGLE_KEYS = Object.keys(PHOTO_ANGLES) as PhotoAngle[];
 
+/** «قبل / بعد» — which half of the before/after board a progress photo belongs to. */
+export const PHOTO_PHASE_KEYS = ["before", "after"] as const;
+export type PhotoPhase = (typeof PHOTO_PHASE_KEYS)[number];
+
 /** Client permissions — additional restrictions *inside* a client's own account. */
 export const PERMISSIONS = [
-  { key: "viewWorkouts", label: "View workouts", description: "See the assigned training plan and today's workout.", group: "Workouts" },
-  { key: "completeWorkouts", label: "Complete workouts", description: "Tick sets as done and finish the daily workout.", group: "Workouts" },
-  { key: "enterActualReps", label: "Enter actual reps", description: "Log fewer (or more) reps than the target for a set.", group: "Workouts" },
-  { key: "viewNutrition", label: "View nutrition", description: "See the meal plan and today's meals.", group: "Nutrition" },
-  { key: "completeMeals", label: "Complete meals", description: "Mark meals as eaten (time is recorded automatically).", group: "Nutrition" },
-  { key: "viewProgress", label: "View progress", description: "Open the Progress area (weight trend, body composition).", group: "Progress" },
-  { key: "viewMeasurements", label: "View measurements", description: "See detailed body measurements history.", group: "Progress" },
-  { key: "viewPhotos", label: "View progress photos", description: "See their own before/after photos.", group: "Progress" },
-  { key: "uploadPhotos", label: "Upload progress photos", description: "Add their own progress photos from the phone.", group: "Progress" },
-  { key: "editPersonalInfo", label: "Edit personal info", description: "Update phone, date of birth, gender and profile photo.", group: "Account" },
-  { key: "changeOwnPassword", label: "Change own password", description: "Let the client change the password you gave them.", group: "Account" },
+  {
+    key: "viewWorkouts",
+    label: "View workouts",
+    description: "See the assigned training plan and today's workout.",
+    group: "Workouts",
+  },
+  {
+    key: "completeWorkouts",
+    label: "Complete workouts",
+    description: "Tick sets as done and finish the daily workout.",
+    group: "Workouts",
+  },
+  {
+    key: "enterActualReps",
+    label: "Enter actual reps",
+    description: "Log fewer (or more) reps than the target for a set.",
+    group: "Workouts",
+  },
+  {
+    key: "viewNutrition",
+    label: "View nutrition",
+    description: "See the meal plan and today's meals.",
+    group: "Nutrition",
+  },
+  {
+    key: "completeMeals",
+    label: "Complete meals",
+    description: "Mark meals as eaten (time is recorded automatically).",
+    group: "Nutrition",
+  },
+  {
+    key: "viewProgress",
+    label: "View progress",
+    description: "Open the Progress area (weight trend, body composition).",
+    group: "Progress",
+  },
+  {
+    key: "viewMeasurements",
+    label: "View measurements",
+    description: "See detailed body measurements history.",
+    group: "Progress",
+  },
+  {
+    key: "viewPhotos",
+    label: "View progress photos",
+    description: "See their own before/after photos.",
+    group: "Progress",
+  },
+  {
+    key: "uploadPhotos",
+    label: "Upload progress photos",
+    description: "Add their own progress photos from the phone.",
+    group: "Progress",
+  },
+  {
+    key: "editPersonalInfo",
+    label: "Edit personal info",
+    description: "Update phone, date of birth, gender and profile photo.",
+    group: "Account",
+  },
+  {
+    key: "changeOwnPassword",
+    label: "Change own password",
+    description: "Let the client change the password you gave them.",
+    group: "Account",
+  },
 ] as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[number]["key"];

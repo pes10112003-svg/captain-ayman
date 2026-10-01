@@ -44,15 +44,9 @@ export default async function SettingsPage() {
           </CardBody>
         </Card>
         <Card>
-          <CardHeader title={t.settings.app} description={t.settings.appSub} icon={<Globe2 />} />
+          <CardHeader title={t.settings.app} icon={<Globe2 />} />
           <CardBody>
-            <AppSettingsForm
-              businessName={prefs.businessName}
-              timezone={prefs.timezone}
-              weightUnit={prefs.weightUnit}
-              lengthUnit={prefs.lengthUnit}
-              weekStartsOn={prefs.weekStartsOn}
-            />
+            <AppSettingsForm businessName={prefs.businessName} />
           </CardBody>
         </Card>
         <Card>

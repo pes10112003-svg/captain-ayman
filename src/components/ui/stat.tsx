@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { CountUp } from "./count-up";
 
 export function StatCard({
   label,
@@ -14,7 +15,11 @@ export function StatCard({
   value: ReactNode;
   sub?: ReactNode;
   icon?: ReactNode;
-  delta?: { value: string; tone: "good" | "crit" | "neutral"; icon?: ReactNode };
+  delta?: {
+    value: string;
+    tone: "good" | "crit" | "neutral";
+    icon?: ReactNode;
+  };
   className?: string;
   href?: string;
 }) {
@@ -24,7 +29,9 @@ export function StatCard({
         <p className="text-[13px] font-medium text-muted">{label}</p>
         {icon ? <span className="grid size-8 place-items-center rounded-lg bg-surface-2 text-ink-2 [&_svg]:size-4">{icon}</span> : null}
       </div>
-      <p className="mt-2 text-[26px] font-semibold leading-none tracking-tight text-ink">{value}</p>
+      <p className="mt-2 text-[26px] font-semibold leading-none tracking-tight text-ink">
+        {typeof value === "string" || typeof value === "number" ? <CountUp text={String(value)} /> : value}
+      </p>
       {sub || delta ? (
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
           {delta ? (
@@ -43,7 +50,11 @@ export function StatCard({
       ) : null}
     </>
   );
-  const cls = cn("block rounded-2xl border border-line bg-surface p-4 shadow-card sm:p-5", href && "transition hover:border-line-strong hover:shadow-pop", className);
+  const cls = cn(
+    "block rounded-2xl border border-line bg-surface p-4 shadow-card sm:p-5",
+    href && "transition hover:border-line-strong hover:shadow-pop",
+    className,
+  );
   return href ? (
     <a href={href} className={cls}>
       {body}

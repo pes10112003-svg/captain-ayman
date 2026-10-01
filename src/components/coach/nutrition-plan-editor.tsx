@@ -6,19 +6,36 @@ import { toast } from "sonner";
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowDownUp, ChevronDown, Clock, Copy, Eraser, GripVertical, Link2, Plus, RotateCcw, Save, Trash2, Utensils, X } from "lucide-react";
+import { ArrowDownUp, ChevronDown, Clock, Copy, Eraser, Flame, GripVertical, Link2, Plus, RotateCcw, Save, Trash2, Utensils, X } from "lucide-react";
 import { saveNutritionPlanAction } from "@/server/actions/nutrition";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Field, Input, Textarea } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
+import { Disclosure } from "@/components/ui/disclosure";
 import { useI18n } from "@/i18n/client";
 import type { Dict } from "@/i18n/en";
 
 type Num = number | "";
-type ItemDraft = { key: string; name: string; quantity: string; calories: Num; protein: Num; carbs: Num; fats: Num };
-type MealDraft = { id: string | null; key: string; name: string; time: string; notes: string; referenceUrl: string; items: ItemDraft[] };
+type ItemDraft = {
+  key: string;
+  name: string;
+  quantity: string;
+  calories: Num;
+  protein: Num;
+  carbs: Num;
+  fats: Num;
+};
+type MealDraft = {
+  id: string | null;
+  key: string;
+  name: string;
+  time: string;
+  notes: string;
+  referenceUrl: string;
+  items: ItemDraft[];
+};
 type PlanDraft = { name: string; notes: string; meals: MealDraft[] };
 
 export type NutritionEditorPlan = {
@@ -31,7 +48,15 @@ export type NutritionEditorPlan = {
     time: string;
     notes: string | null;
     referenceUrl: string | null;
-    items: { key: string; name: string; quantity: string | null; calories: number | null; protein: number | null; carbs: number | null; fats: number | null }[];
+    items: {
+      key: string;
+      name: string;
+      quantity: string | null;
+      calories: number | null;
+      protein: number | null;
+      carbs: number | null;
+      fats: number | null;
+    }[];
   }[];
 } | null;
 
@@ -65,8 +90,19 @@ function toDraft(plan: NutritionEditorPlan, defaultName: string): PlanDraft {
   };
 }
 
-const newItem = (): ItemDraft => ({ key: uid(), name: "", quantity: "", calories: "", protein: "", carbs: "", fats: "" });
-const MEAL_PRESETS: { key: Exclude<keyof Dict["nutritionEditor"]["presets"], "meal">; time: string }[] = [
+const newItem = (): ItemDraft => ({
+  key: uid(),
+  name: "",
+  quantity: "",
+  calories: "",
+  protein: "",
+  carbs: "",
+  fats: "",
+});
+const MEAL_PRESETS: {
+  key: Exclude<keyof Dict["nutritionEditor"]["presets"], "meal">;
+  time: string;
+}[] = [
   { key: "breakfast", time: "08:00" },
   { key: "snack", time: "11:00" },
   { key: "lunch", time: "14:00" },
@@ -77,7 +113,12 @@ const MEAL_PRESETS: { key: Exclude<keyof Dict["nutritionEditor"]["presets"], "me
 
 function totals(items: ItemDraft[]) {
   const t = (k: "calories" | "protein" | "carbs" | "fats") => items.reduce((a, i) => a + (i[k] === "" ? 0 : Number(i[k])), 0);
-  return { calories: t("calories"), protein: t("protein"), carbs: t("carbs"), fats: t("fats") };
+  return {
+    calories: t("calories"),
+    protein: t("protein"),
+    carbs: t("carbs"),
+    fats: t("fats"),
+  };
 }
 const r = (v: number) => Math.round(v * 10) / 10;
 
@@ -109,17 +150,48 @@ export function NutritionPlanEditor({ clientId, initial }: { clientId: string; i
   }, [dirty]);
 
   const day = totals(plan.meals.flatMap((m) => m.items));
-  const setMeal = (key: string, patch: Partial<MealDraft>) => setPlan((p) => ({ ...p, meals: p.meals.map((m) => (m.key === key ? { ...m, ...patch } : m)) }));
+  // Calories & macros are optional — the daily totals only show once at least one value is entered.
+  const hasDayMacros = day.calories + day.protein + day.carbs + day.fats > 0;
+  const setMeal = (key: string, patch: Partial<MealDraft>) =>
+    setPlan((p) => ({
+      ...p,
+      meals: p.meals.map((m) => (m.key === key ? { ...m, ...patch } : m)),
+    }));
 
   const addMeal = () => {
     const used = new Set(plan.meals.map((m) => m.name));
-    const presets = MEAL_PRESETS.map((p) => ({ name: ne.presets[p.key], time: p.time }));
-    const preset = presets.find((p) => !used.has(p.name)) ?? { name: f(ne.presets.meal, { n: plan.meals.length + 1 }), time: "12:00" };
-    setPlan((p) => ({ ...p, meals: [...p.meals, { id: null, key: uid(), name: preset.name, time: preset.time, notes: "", referenceUrl: "", items: [newItem()] }] }));
+    const presets = MEAL_PRESETS.map((p) => ({
+      name: ne.presets[p.key],
+      time: p.time,
+    }));
+    const preset = presets.find((p) => !used.has(p.name)) ?? {
+      name: f(ne.presets.meal, { n: plan.meals.length + 1 }),
+      time: "12:00",
+    };
+    setPlan((p) => ({
+      ...p,
+      meals: [
+        ...p.meals,
+        {
+          id: null,
+          key: uid(),
+          name: preset.name,
+          time: preset.time,
+          notes: "",
+          referenceUrl: "",
+          items: [newItem()],
+        },
+      ],
+    }));
   };
 
   const dndId = useId();
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
   const onDragEnd = (e: DragEndEvent) => {
     if (!e.over || e.active.id === e.over.id) return;
     setPlan((p) => {
@@ -173,27 +245,35 @@ export function NutritionPlanEditor({ clientId, initial }: { clientId: string; i
   return (
     <div className="space-y-6 pb-24">
       <Card>
-        <CardBody className="grid gap-4 lg:grid-cols-[1fr_1fr_auto]">
+        <CardBody className={cn("grid gap-4", hasDayMacros ? "lg:grid-cols-[1fr_1fr_auto]" : "lg:grid-cols-2")}>
           <Field label={ne.planName} htmlFor="np-name">
             <Input id="np-name" value={plan.name} maxLength={120} onChange={(e) => setPlan((p) => ({ ...p, name: e.target.value }))} />
           </Field>
           <Field label={ne.planNotes} htmlFor="np-notes" optional>
-            <Input id="np-notes" value={plan.notes} maxLength={4000} placeholder={ne.planNotesPh} onChange={(e) => setPlan((p) => ({ ...p, notes: e.target.value }))} />
+            <Input
+              id="np-notes"
+              value={plan.notes}
+              maxLength={4000}
+              placeholder={ne.planNotesPh}
+              onChange={(e) => setPlan((p) => ({ ...p, notes: e.target.value }))}
+            />
           </Field>
-          <div className="grid grid-cols-4 gap-2 rounded-xl bg-surface-2 p-3 text-center lg:min-w-80">
-            {[
-              [ne.kcal, fmt.num(r(day.calories))],
-              [ne.protein, fmt.measure(r(day.protein), "g")],
-              [ne.carbs, fmt.measure(r(day.carbs), "g")],
-              [ne.fats, fmt.measure(r(day.fats), "g")],
-            ].map(([k, v]) => (
-              <div key={String(k)}>
-                <p className="text-[11px] text-muted">{k}</p>
-                <p className="text-sm font-semibold tabular">{v}</p>
-              </div>
-            ))}
-            <p className="col-span-4 text-[10px] uppercase tracking-wide text-muted">{ne.dailyTotal}</p>
-          </div>
+          {hasDayMacros ? (
+            <div className="grid grid-cols-4 gap-2 rounded-xl bg-surface-2 p-3 text-center lg:min-w-80">
+              {[
+                [ne.kcal, fmt.num(r(day.calories))],
+                [ne.protein, fmt.measure(r(day.protein), "g")],
+                [ne.carbs, fmt.measure(r(day.carbs), "g")],
+                [ne.fats, fmt.measure(r(day.fats), "g")],
+              ].map(([k, v]) => (
+                <div key={String(k)}>
+                  <p className="text-[11px] text-muted">{k}</p>
+                  <p className="text-sm font-semibold tabular">{v}</p>
+                </div>
+              ))}
+              <p className="col-span-4 text-[10px] uppercase tracking-wide text-muted">{ne.dailyTotal}</p>
+            </div>
+          ) : null}
         </CardBody>
       </Card>
 
@@ -204,7 +284,12 @@ export function NutritionPlanEditor({ clientId, initial }: { clientId: string; i
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setPlan((p) => ({ ...p, meals: [...p.meals].sort((a, b) => a.time.localeCompare(b.time)) }))}
+              onClick={() =>
+                setPlan((p) => ({
+                  ...p,
+                  meals: [...p.meals].sort((a, b) => a.time.localeCompare(b.time)),
+                }))
+              }
             >
               <ArrowDownUp /> {ne.sortByTime}
             </Button>
@@ -221,11 +306,33 @@ export function NutritionPlanEditor({ clientId, initial }: { clientId: string; i
                     onDuplicate={() =>
                       setPlan((p) => ({
                         ...p,
-                        meals: [...p.meals.slice(0, i + 1), { ...m, id: null, key: uid(), name: `${m.name}${t.workoutEditor.copySuffix}`.slice(0, 80), items: m.items.map((it) => ({ ...it, key: uid() })) }, ...p.meals.slice(i + 1)],
+                        meals: [
+                          ...p.meals.slice(0, i + 1),
+                          {
+                            ...m,
+                            id: null,
+                            key: uid(),
+                            name: `${m.name}${t.workoutEditor.copySuffix}`.slice(0, 80),
+                            items: m.items.map((it) => ({ ...it, key: uid() })),
+                          },
+                          ...p.meals.slice(i + 1),
+                        ],
                       }))
                     }
-                    onReplace={() => setMeal(m.key, { name: m.name, notes: "", referenceUrl: "", items: [newItem()] })}
-                    onRemove={() => setPlan((p) => ({ ...p, meals: p.meals.filter((x) => x.key !== m.key) }))}
+                    onReplace={() =>
+                      setMeal(m.key, {
+                        name: m.name,
+                        notes: "",
+                        referenceUrl: "",
+                        items: [newItem()],
+                      })
+                    }
+                    onRemove={() =>
+                      setPlan((p) => ({
+                        ...p,
+                        meals: p.meals.filter((x) => x.key !== m.key),
+                      }))
+                    }
                   />
                 ))}
               </ol>
@@ -293,10 +400,22 @@ function SortableMeal({
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: m.key });
   const [open, setOpen] = useState(true);
   const tot = totals(m.items);
-  const macroLabel = { calories: ne.kcal, protein: ne.proteinG, carbs: ne.carbsG, fats: ne.fatsG } as const;
-  const setItem = (key: string, patch: Partial<ItemDraft>) => onChange({ items: m.items.map((i) => (i.key === key ? { ...i, ...patch } : i)) });
+  const hasMacros = m.items.some((i) => i.calories !== "" || i.protein !== "" || i.carbs !== "" || i.fats !== "");
+  // Optional nutrition values: hidden until the coach asks for them (or the meal already has some).
+  const [showMacros, setShowMacros] = useState(hasMacros);
+  const macroLabel = {
+    calories: ne.kcal,
+    protein: ne.proteinG,
+    carbs: ne.carbsG,
+    fats: ne.fatsG,
+  } as const;
+  const setItem = (key: string, patch: Partial<ItemDraft>) =>
+    onChange({
+      items: m.items.map((i) => (i.key === key ? { ...i, ...patch } : i)),
+    });
   const parse = (v: string): Num => (v === "" ? "" : Number(v));
-  const numCell = "h-9 w-full min-w-14 rounded-lg border border-line bg-surface px-2 text-end tabular outline-none focus:border-ring focus:ring-2 focus:ring-ring/20";
+  const numCell =
+    "h-9 w-full min-w-14 rounded-lg border border-line bg-surface px-2 text-end tabular outline-none focus:border-ring focus:ring-2 focus:ring-ring/20";
 
   return (
     <li
@@ -344,27 +463,41 @@ function SortableMeal({
           <Button variant="ghost" size="icon-sm" onClick={onRemove} aria-label={ne.deleteMeal} className="text-crit-text hover:bg-crit-soft">
             <Trash2 />
           </Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setOpen((o) => !o)} aria-label={open ? t.workoutEditor.collapse : t.workoutEditor.expand} aria-expanded={open}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setOpen((o) => !o)}
+            aria-label={open ? t.workoutEditor.collapse : t.workoutEditor.expand}
+            aria-expanded={open}
+          >
             <ChevronDown className={cn("transition-transform", open && "rotate-180")} />
           </Button>
         </div>
       </div>
       {!open ? (
         <p className="-mt-2 px-4 pb-3 text-xs text-muted">
-          {m.items.map((i) => i.name).filter(Boolean).join(", ") || ne.noFoods} · {fmt.num(r(tot.calories))} {fmt.unit("kcal")}
+          {m.items
+            .map((i) => i.name)
+            .filter(Boolean)
+            .join(", ") || ne.noFoods}
+          {hasMacros ? ` · ${fmt.num(r(tot.calories))} ${fmt.unit("kcal")}` : ""}
         </p>
       ) : (
         <div className="border-t border-line p-3 sm:p-4">
           <div className="overflow-x-auto rounded-xl border border-line">
-            <table className="w-full min-w-[640px] text-sm">
+            <table className={cn("w-full text-sm", showMacros && "min-w-[640px]")}>
               <thead className="bg-surface-2 text-xs text-muted">
                 <tr>
                   <th className="py-2 ps-3 text-start font-medium">{ne.food}</th>
                   <th className="py-2 ps-2 text-start font-medium">{ne.quantity}</th>
-                  <th className="w-20 py-2 ps-2 text-end font-medium">{ne.kcal}</th>
-                  <th className="w-20 py-2 ps-2 text-end font-medium">{ne.proteinG}</th>
-                  <th className="w-20 py-2 ps-2 text-end font-medium">{ne.carbsG}</th>
-                  <th className="w-20 py-2 ps-2 text-end font-medium">{ne.fatsG}</th>
+                  {showMacros ? (
+                    <>
+                      <th className="w-20 py-2 ps-2 text-end font-medium">{ne.kcal}</th>
+                      <th className="w-20 py-2 ps-2 text-end font-medium">{ne.proteinG}</th>
+                      <th className="w-20 py-2 ps-2 text-end font-medium">{ne.carbsG}</th>
+                      <th className="w-20 py-2 ps-2 text-end font-medium">{ne.fatsG}</th>
+                    </>
+                  ) : null}
                   <th className="w-10" />
                 </tr>
               </thead>
@@ -372,18 +505,50 @@ function SortableMeal({
                 {m.items.map((i) => (
                   <tr key={i.key}>
                     <td className="py-1.5 pe-1 ps-3">
-                      <input value={i.name} maxLength={120} onChange={(e) => setItem(i.key, { name: e.target.value })} placeholder={ne.foodPh} aria-label={ne.food} className="h-9 w-full rounded-lg border border-line bg-surface px-2.5 outline-none focus:border-ring focus:ring-2 focus:ring-ring/20" />
+                      <input
+                        value={i.name}
+                        maxLength={120}
+                        onChange={(e) => setItem(i.key, { name: e.target.value })}
+                        placeholder={ne.foodPh}
+                        aria-label={ne.food}
+                        className="h-9 w-full rounded-lg border border-line bg-surface px-2.5 outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                      />
                     </td>
                     <td className="px-1 py-1.5">
-                      <input value={i.quantity} maxLength={60} onChange={(e) => setItem(i.key, { quantity: e.target.value })} placeholder={ne.quantityPh} aria-label={ne.quantity} className="h-9 w-full rounded-lg border border-line bg-surface px-2.5 outline-none focus:border-ring focus:ring-2 focus:ring-ring/20" />
+                      <input
+                        value={i.quantity}
+                        maxLength={60}
+                        onChange={(e) => setItem(i.key, { quantity: e.target.value })}
+                        placeholder={ne.quantityPh}
+                        aria-label={ne.quantity}
+                        className="h-9 w-full rounded-lg border border-line bg-surface px-2.5 outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                      />
                     </td>
-                    {(["calories", "protein", "carbs", "fats"] as const).map((k) => (
+                    {(showMacros ? (["calories", "protein", "carbs", "fats"] as const) : []).map((k) => (
                       <td key={k} className="px-1 py-1.5">
-                        <input type="number" inputMode="decimal" min={0} step="0.1" value={i[k]} onChange={(e) => setItem(i.key, { [k]: parse(e.target.value) })} aria-label={macroLabel[k]} className={numCell} />
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          min={0}
+                          step="0.1"
+                          value={i[k]}
+                          onChange={(e) => setItem(i.key, { [k]: parse(e.target.value) })}
+                          aria-label={macroLabel[k]}
+                          className={numCell}
+                        />
                       </td>
                     ))}
                     <td className="pe-1.5 text-end">
-                      <button type="button" onClick={() => onChange({ items: m.items.filter((x) => x.key !== i.key) })} className="grid size-8 place-items-center rounded-lg text-muted hover:bg-crit-soft hover:text-crit-text" aria-label={ne.removeFood}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onChange({
+                            items: m.items.filter((x) => x.key !== i.key),
+                          })
+                        }
+                        className="grid size-8 place-items-center rounded-lg text-muted hover:bg-crit-soft hover:text-crit-text"
+                        aria-label={ne.removeFood}
+                      >
                         <X className="size-4" />
                       </button>
                     </td>
@@ -393,30 +558,59 @@ function SortableMeal({
               <tfoot className="border-t border-line bg-surface-2/50 text-xs font-semibold">
                 <tr>
                   <td className="py-2 ps-3" colSpan={2}>
-                    <button type="button" onClick={() => onChange({ items: [...m.items, newItem()] })} className="inline-flex items-center gap-1.5 font-medium text-ink-2 hover:text-ink">
+                    <button
+                      type="button"
+                      onClick={() => onChange({ items: [...m.items, newItem()] })}
+                      className="inline-flex items-center gap-1.5 font-medium text-ink-2 hover:text-ink"
+                    >
                       <Plus className="size-3.5" /> {ne.addFood}
                     </button>
                   </td>
-                  <td className="py-2 pe-3 text-end tabular">{fmt.num(r(tot.calories))}</td>
-                  <td className="py-2 pe-3 text-end tabular">{fmt.num(r(tot.protein))}</td>
-                  <td className="py-2 pe-3 text-end tabular">{fmt.num(r(tot.carbs))}</td>
-                  <td className="py-2 pe-3 text-end tabular">{fmt.num(r(tot.fats))}</td>
+                  {showMacros ? (
+                    <>
+                      <td className="py-2 pe-3 text-end tabular">{fmt.num(r(tot.calories))}</td>
+                      <td className="py-2 pe-3 text-end tabular">{fmt.num(r(tot.protein))}</td>
+                      <td className="py-2 pe-3 text-end tabular">{fmt.num(r(tot.carbs))}</td>
+                      <td className="py-2 pe-3 text-end tabular">{fmt.num(r(tot.fats))}</td>
+                    </>
+                  ) : null}
                   <td />
                 </tr>
               </tfoot>
             </table>
           </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <Field label={ne.notes} optional>
-              <Textarea rows={2} value={m.notes} maxLength={2000} placeholder={ne.notesPh} onChange={(e) => onChange({ notes: e.target.value })} />
-            </Field>
-            <Field label={ne.reference} optional>
-              <div className="relative" dir="ltr">
-                <Link2 className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
-                <Input value={m.referenceUrl} maxLength={500} placeholder="https://…" className="ps-9" onChange={(e) => onChange({ referenceUrl: e.target.value })} />
-              </div>
-            </Field>
+          <div className="mt-3 flex flex-wrap items-start gap-x-2 gap-y-1">
+            <button
+              type="button"
+              onClick={() => setShowMacros((v) => !v)}
+              aria-pressed={showMacros}
+              className={cn(
+                "inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-[13px] font-medium transition [&_svg]:size-3.5",
+                showMacros ? "bg-surface-2 text-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink",
+              )}
+            >
+              <Flame /> {ne.macrosToggle}
+            </button>
           </div>
+          <Disclosure title={t.common.moreOptions} defaultOpen={!!(m.notes || m.referenceUrl)} className="mt-1">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label={ne.notes} optional>
+                <Textarea rows={2} value={m.notes} maxLength={2000} placeholder={ne.notesPh} onChange={(e) => onChange({ notes: e.target.value })} />
+              </Field>
+              <Field label={ne.reference} optional>
+                <div className="relative" dir="ltr">
+                  <Link2 className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
+                  <Input
+                    value={m.referenceUrl}
+                    maxLength={500}
+                    placeholder="https://…"
+                    className="ps-9"
+                    onChange={(e) => onChange({ referenceUrl: e.target.value })}
+                  />
+                </div>
+              </Field>
+            </div>
+          </Disclosure>
         </div>
       )}
     </li>

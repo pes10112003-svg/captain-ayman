@@ -29,7 +29,7 @@ export default async function ClientAreaLayout({ children }: { children: React.R
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-3xl px-4 pb-safe-nav pt-5 md:pb-16 md:pt-8">{children}</main>
+      <main className="page-stagger mx-auto w-full max-w-3xl px-4 pb-safe-nav pt-5 md:pb-16 md:pt-8">{children}</main>
       <ClientBottomNav permissions={permissions} />
     </div>
   );

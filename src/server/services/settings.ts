@@ -1,9 +1,9 @@
 import { eq } from "drizzle-orm";
 import { db, type Executor } from "../db";
 import { coachSettings } from "../db/schema";
-import { env } from "../env";
 import { todayInTz } from "@/lib/time";
 import type { UnitPrefs } from "@/lib/units";
+import { FIXED_COACH_SETTINGS } from "@/lib/validation";
 
 export type CoachPrefs = UnitPrefs & {
   coachId: string;
@@ -15,24 +15,21 @@ export type CoachPrefs = UnitPrefs & {
 
 export async function getCoachPrefs(coachId: string, dbx: Executor = db): Promise<CoachPrefs> {
   const [row] = await dbx.select().from(coachSettings).where(eq(coachSettings.coachId, coachId)).limit(1);
+  // Timezone, units and week start are fixed for this app (Egypt · kg · cm · Saturday).
+  const fixed = { ...FIXED_COACH_SETTINGS } as const;
   if (row) {
     return {
       coachId,
-      timezone: row.timezone,
-      weightUnit: row.weightUnit,
-      lengthUnit: row.lengthUnit,
-      weekStartsOn: row.weekStartsOn,
+      ...fixed,
       businessName: row.businessName,
       lastSnapshotDate: row.lastSnapshotDate,
     };
   }
-  const [created] = await dbx
+  await dbx
     .insert(coachSettings)
-    .values({ coachId, timezone: env().APP_TIMEZONE })
-    .onConflictDoNothing()
-    .returning();
-  const tz = created?.timezone ?? env().APP_TIMEZONE;
-  return { coachId, timezone: tz, weightUnit: "kg", lengthUnit: "cm", weekStartsOn: 1, businessName: null, lastSnapshotDate: null };
+    .values({ coachId, ...fixed })
+    .onConflictDoNothing();
+  return { coachId, ...fixed, businessName: null, lastSnapshotDate: null };
 }
 
 export async function coachToday(coachId: string, dbx: Executor = db) {

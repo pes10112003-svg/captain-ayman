@@ -13,7 +13,7 @@ export async function login(page: Page, who: { email: string; password: string }
 }
 
 export async function newSession(browser: Browser, who: { email: string; password: string }) {
-  const context = await browser.newContext({ storageState: STATE_PATH });
+  const context = await browser.newContext({ storageState: STATE_PATH, reducedMotion: "reduce" });
   const page = await context.newPage();
   await login(page, who);
   return { context, page };

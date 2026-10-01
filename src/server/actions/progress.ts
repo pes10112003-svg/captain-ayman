@@ -42,6 +42,7 @@ export async function uploadPhotoAction(clientId: string, formData: FormData) {
     const file = formData.get("photo");
     if (!(file instanceof File)) throw new ValidationError("Choose an image to upload.");
     const meta = parseInput(photoMetaSchema, {
+      phase: formData.get("phase"),
       angle: formData.get("angle"),
       takenOn: formData.get("takenOn"),
       note: formData.get("note"),

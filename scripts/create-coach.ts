@@ -1,7 +1,7 @@
 /**
  * Create (or reset the password of) a coach account — use this for real deployments instead of the demo seed.
  *
- *   npm run coach:create -- --email you@yourgym.com --name "Your Name" [--timezone Africa/Cairo]
+ *   npm run coach:create -- --email you@yourgym.com --name "Your Name"
  *
  * The password is read from the COACH_PASSWORD env var, or prompted for interactively (hidden).
  */
@@ -11,7 +11,7 @@ import { sql } from "drizzle-orm";
 import { db, pool } from "@/server/db";
 import { coachSettings, users } from "@/server/db/schema";
 import { hashPassword } from "@/server/auth/password";
-import { isValidTimeZone } from "@/lib/time";
+import { FIXED_COACH_SETTINGS } from "@/lib/validation";
 
 function arg(name: string) {
   const i = process.argv.indexOf(`--${name}`);
@@ -33,9 +33,7 @@ async function promptHidden(question: string) {
 async function main() {
   const email = arg("email")?.trim().toLowerCase();
   const name = arg("name")?.trim() ?? "Coach";
-  const timezone = arg("timezone") ?? process.env.APP_TIMEZONE ?? "UTC";
   if (!email || !email.includes("@")) throw new Error('Usage: npm run coach:create -- --email you@example.com --name "Your Name"');
-  if (!isValidTimeZone(timezone)) throw new Error(`Unknown timezone: ${timezone}`);
   const password = process.env.COACH_PASSWORD ?? (await promptHidden("Password (min 12 chars recommended): "));
   if (password.length < 8) throw new Error("Password must be at least 8 characters.");
 
@@ -47,8 +45,8 @@ async function main() {
     console.log(`✓ Updated coach ${email}`);
   } else {
     const [u] = await db.insert(users).values({ email, name, role: "coach", passwordHash }).returning();
-    await db.insert(coachSettings).values({ coachId: u!.id, timezone });
-    console.log(`✓ Created coach ${email} (${timezone})`);
+    await db.insert(coachSettings).values({ coachId: u!.id, ...FIXED_COACH_SETTINGS });
+    console.log(`✓ Created coach ${email}`);
   }
   await pool.end();
 }

@@ -14,7 +14,17 @@ import { getClientProfile, listClients, resetClientPassword, updatePermissions }
 import { authenticate, changePassword } from "@/server/services/auth";
 import { getAccessSettings, updateAccessCode } from "@/server/services/access";
 import { getGateState, invalidateGateCache, verifyAccessCode } from "@/server/auth/gate";
-import { completeWorkout, editWorkoutLog, ensureWorkoutLogForDate, getTodayWorkout, listWorkoutHistory, loadWorkoutLogTree, recordSet, saveWorkoutPlan, getWorkoutPlanForEditor } from "@/server/services/workouts";
+import {
+  completeWorkout,
+  editWorkoutLog,
+  ensureWorkoutLogForDate,
+  getTodayWorkout,
+  listWorkoutHistory,
+  loadWorkoutLogTree,
+  recordSet,
+  saveWorkoutPlan,
+  getWorkoutPlanForEditor,
+} from "@/server/services/workouts";
 import { getMealHistory, getTodayMeals, setMealConsumed } from "@/server/services/nutrition";
 import { addMeasurements, getProgress, listMeasurementTypes } from "@/server/services/progress";
 import { listPhotos, readPhoto, uploadProgressPhoto } from "@/server/services/photos";
@@ -96,9 +106,20 @@ describe("2–3 · client isolation", () => {
   it("clients cannot use coach-only operations, even on themselves", async () => {
     await expect(saveWorkoutPlan(A.actor, A.id, pushPlan(1))).rejects.toBeInstanceOf(ForbiddenError);
     await expect(getWorkoutPlanForEditor(A.actor, A.id)).rejects.toBeInstanceOf(ForbiddenError);
-    await expect(updatePermissions(A.actor, A.id, { ...DEFAULT_PERMISSIONS, uploadPhotos: true })).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(
+      updatePermissions(A.actor, A.id, {
+        ...DEFAULT_PERMISSIONS,
+        uploadPhotos: true,
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
     const types = await listMeasurementTypes(coach.userId);
-    await expect(addMeasurements(A.actor, A.id, { measuredOn: today(), note: null, values: [{ typeId: types[0]!.id, value: 70 }] })).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(
+      addMeasurements(A.actor, A.id, {
+        measuredOn: today(),
+        note: null,
+        values: [{ typeId: types[0]!.id, value: 70 }],
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
     await expect(listClients(A.actor, {})).rejects.toBeInstanceOf(ForbiddenError);
   });
 });
@@ -114,10 +135,17 @@ describe("4–5 · set logging", () => {
 
   it("client A can enter actual reps lower than the target (partial set)", async () => {
     const sets = await firstSetId(A.actor);
-    const res = await recordSet(A.actor, sets[1]!.id, { done: true, actualReps: 8 });
+    const res = await recordSet(A.actor, sets[1]!.id, {
+      done: true,
+      actualReps: 8,
+    });
     expect(res.set.status).toBe("partial");
     const [row] = await db.select().from(workoutSetLogs).where(eq(workoutSetLogs.id, sets[1]!.id));
-    expect(row).toMatchObject({ targetReps: 12, actualReps: 8, status: "partial" });
+    expect(row).toMatchObject({
+      targetReps: 12,
+      actualReps: 8,
+      status: "partial",
+    });
     expect(row!.completedAt).toBeInstanceOf(Date);
     expect(res.summary.percent).toBeCloseTo((8 / 36) * 100, 1);
   });
@@ -166,7 +194,10 @@ describe("6–8 · meals & automatic timestamps", () => {
     await setMealConsumed(A.actor, logs[0]!.id, true);
     const undone = await setMealConsumed(A.actor, logs[0]!.id, false);
     expect(undone.consumedAt).toBeNull();
-    await db.update(mealLogs).set({ date: addDays(today(), -1) }).where(eq(mealLogs.id, logs[1]!.id));
+    await db
+      .update(mealLogs)
+      .set({ date: addDays(today(), -1) })
+      .where(eq(mealLogs.id, logs[1]!.id));
     await expect(setMealConsumed(A.actor, logs[1]!.id, true)).rejects.toBeInstanceOf(ForbiddenError);
   });
 });
@@ -186,7 +217,10 @@ describe("9–10 · plan edits never rewrite history", () => {
     const editor = await getWorkoutPlanForEditor(coach, A.id);
     await saveWorkoutPlan(coach, A.id, pushPlan(10, editor.plan!.workouts[0]!.id));
 
-    const [todayLog] = await db.select().from(workoutLogs).where(and(eq(workoutLogs.clientId, A.id), eq(workoutLogs.date, today())));
+    const [todayLog] = await db
+      .select()
+      .from(workoutLogs)
+      .where(and(eq(workoutLogs.clientId, A.id), eq(workoutLogs.date, today())));
     const tree = await loadWorkoutLogTree(todayLog!.id);
     const recorded = tree!.exercises[0]!.sets;
     expect(recorded.map((s) => s.targetReps)).toEqual([12, 12, 12]);
@@ -204,7 +238,12 @@ describe("9–10 · plan edits never rewrite history", () => {
   it("deleting a workout from the plan keeps the historical record", async () => {
     const sets = await firstSetId(A.actor);
     await recordSet(A.actor, sets[0]!.id, { done: true });
-    await saveWorkoutPlan(coach, A.id, { name: "Empty", notes: null, workouts: [], schedule: Array(7).fill(null) });
+    await saveWorkoutPlan(coach, A.id, {
+      name: "Empty",
+      notes: null,
+      workouts: [],
+      schedule: Array(7).fill(null),
+    });
     const history = await listWorkoutHistory(coach, A.id);
     expect(history.logs).toHaveLength(1);
     expect(history.logs[0]!.title).toBe("PUSH");
@@ -215,7 +254,10 @@ describe("9–10 · plan edits never rewrite history", () => {
     const sets = await firstSetId(A.actor);
     await recordSet(A.actor, sets[0]!.id, { done: true });
     const [log] = await db.select().from(workoutLogs).where(eq(workoutLogs.clientId, A.id));
-    await editWorkoutLog(coach, A.id, log!.id, { coachNote: "Form check", sets: [{ id: sets[0]!.id, actualReps: 7, status: "partial" }] });
+    await editWorkoutLog(coach, A.id, log!.id, {
+      coachNote: "Form check",
+      sets: [{ id: sets[0]!.id, actualReps: 7, status: "partial" }],
+    });
     const [after] = await db.select().from(workoutLogs).where(eq(workoutLogs.id, log!.id));
     expect(after!.coachEditedAt).not.toBeNull();
     expect(after!.coachNote).toBe("Form check");
@@ -226,7 +268,10 @@ describe("9–10 · plan edits never rewrite history", () => {
 
 describe("11 · per-client permissions", () => {
   it("enterActualReps OFF: partial reps are rejected server-side, full sets still work", async () => {
-    await updatePermissions(coach, A.id, { ...DEFAULT_PERMISSIONS, enterActualReps: false });
+    await updatePermissions(coach, A.id, {
+      ...DEFAULT_PERMISSIONS,
+      enterActualReps: false,
+    });
     const sets = await firstSetId(A.actor);
     await expect(recordSet(A.actor, sets[0]!.id, { done: true, actualReps: 5 })).rejects.toBeInstanceOf(ForbiddenError);
     const ok = await recordSet(A.actor, sets[0]!.id, { done: true });
@@ -236,12 +281,20 @@ describe("11 · per-client permissions", () => {
   it("completeWorkouts / completeMeals / viewNutrition / viewWorkouts OFF are enforced", async () => {
     const sets = await firstSetId(A.actor);
     const { logs } = await getTodayMeals(A.actor);
-    await updatePermissions(coach, A.id, { ...DEFAULT_PERMISSIONS, completeWorkouts: false, completeMeals: false });
+    await updatePermissions(coach, A.id, {
+      ...DEFAULT_PERMISSIONS,
+      completeWorkouts: false,
+      completeMeals: false,
+    });
     await expect(recordSet(A.actor, sets[0]!.id, { done: true })).rejects.toBeInstanceOf(ForbiddenError);
     await expect(completeWorkout(A.actor)).rejects.toBeInstanceOf(ForbiddenError);
     await expect(setMealConsumed(A.actor, logs[0]!.id, true)).rejects.toBeInstanceOf(ForbiddenError);
 
-    await updatePermissions(coach, A.id, { ...DEFAULT_PERMISSIONS, viewNutrition: false, viewWorkouts: false });
+    await updatePermissions(coach, A.id, {
+      ...DEFAULT_PERMISSIONS,
+      viewNutrition: false,
+      viewWorkouts: false,
+    });
     await expect(getTodayMeals(A.actor)).rejects.toBeInstanceOf(ForbiddenError);
     await expect(getTodayWorkout(A.actor)).rejects.toBeInstanceOf(ForbiddenError);
     // …but the coach is never restricted by client permissions.
@@ -251,30 +304,71 @@ describe("11 · per-client permissions", () => {
   it("permissions never widen access: enabling everything still can't reach client B", async () => {
     await updatePermissions(coach, A.id, Object.fromEntries(Object.keys(DEFAULT_PERMISSIONS).map((k) => [k, true])) as typeof DEFAULT_PERMISSIONS);
     await expect(getProgress(A.actor, B.id)).rejects.toBeInstanceOf(NotFoundError);
-    await expect(uploadProgressPhoto(A.actor, B.id, await pngFile(), { angle: "front", takenOn: today() })).rejects.toBeInstanceOf(NotFoundError);
+    await expect(
+      uploadProgressPhoto(A.actor, B.id, await pngFile(), {
+        phase: "after",
+        angle: "front",
+        takenOn: today(),
+      }),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 });
 
 describe("12 · private progress photos", () => {
   it("only the owning coach and the client (with permission) can read a photo", async () => {
-    const { id: photoId } = await uploadProgressPhoto(coach, B.id, await pngFile(), { angle: "front", takenOn: today() });
+    const { id: photoId } = await uploadProgressPhoto(coach, B.id, await pngFile(), { phase: "after", angle: "front", takenOn: today() });
 
-    await expect(readPhoto(coach, photoId, "thumb")).resolves.toMatchObject({ mimeType: "image/webp" });
-    await expect(readPhoto(B.actor, photoId, "full")).resolves.toMatchObject({ mimeType: "image/webp" });
+    await expect(readPhoto(coach, photoId, "thumb")).resolves.toMatchObject({
+      mimeType: "image/webp",
+    });
+    await expect(readPhoto(B.actor, photoId, "full")).resolves.toMatchObject({
+      mimeType: "image/webp",
+    });
     await expect(readPhoto(A.actor, photoId, "full")).rejects.toBeInstanceOf(NotFoundError);
     await expect(readPhoto(otherCoach, photoId, "full")).rejects.toBeInstanceOf(NotFoundError);
 
-    await updatePermissions(coach, B.id, { ...DEFAULT_PERMISSIONS, viewPhotos: false });
+    await updatePermissions(coach, B.id, {
+      ...DEFAULT_PERMISSIONS,
+      viewPhotos: false,
+    });
     await expect(readPhoto(B.actor, photoId, "full")).rejects.toBeInstanceOf(ForbiddenError);
     await expect(listPhotos(B.actor, B.id)).rejects.toBeInstanceOf(ForbiddenError);
   });
 
+  it("keeps each photo's before/after stage and type (incl. InBody)", async () => {
+    await uploadProgressPhoto(coach, A.id, await pngFile(), { phase: "before", angle: "inbody", takenOn: today() });
+    await uploadProgressPhoto(coach, A.id, await pngFile(), { phase: "after", angle: "side", takenOn: today() });
+    const list = await listPhotos(coach, A.id);
+    expect(list.map((p) => `${p.phase}:${p.angle}`).sort()).toEqual(expect.arrayContaining(["after:side", "before:inbody"]));
+  });
+
   it("clients can't upload unless allowed, and uploads are validated by decoding", async () => {
-    await expect(uploadProgressPhoto(A.actor, A.id, await pngFile(), { angle: "front", takenOn: today() })).rejects.toBeInstanceOf(ForbiddenError);
-    await updatePermissions(coach, A.id, { ...DEFAULT_PERMISSIONS, uploadPhotos: true });
-    await expect(uploadProgressPhoto(A.actor, A.id, await pngFile(), { angle: "side", takenOn: today() })).resolves.toHaveProperty("id");
+    await expect(
+      uploadProgressPhoto(A.actor, A.id, await pngFile(), {
+        phase: "after",
+        angle: "front",
+        takenOn: today(),
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+    await updatePermissions(coach, A.id, {
+      ...DEFAULT_PERMISSIONS,
+      uploadPhotos: true,
+    });
+    await expect(
+      uploadProgressPhoto(A.actor, A.id, await pngFile(), {
+        phase: "after",
+        angle: "side",
+        takenOn: today(),
+      }),
+    ).resolves.toHaveProperty("id");
     const fake = new File([new TextEncoder().encode("<script>alert(1)</script>")], "evil.png", { type: "image/png" });
-    await expect(uploadProgressPhoto(coach, A.id, fake, { angle: "front", takenOn: today() })).rejects.toThrow(/valid image/);
+    await expect(
+      uploadProgressPhoto(coach, A.id, fake, {
+        phase: "after",
+        angle: "front",
+        takenOn: today(),
+      }),
+    ).rejects.toThrow(/valid image/);
   });
 });
 
@@ -282,8 +376,16 @@ describe("measurements & analytics are computed from stored data", () => {
   it("adds measurements (history kept), updates current weight and derives BMI", async () => {
     const types = await listMeasurementTypes(coach.userId);
     const weight = types.find((t) => t.key === "weight")!;
-    await addMeasurements(coach, A.id, { measuredOn: addDays(today(), -7), note: null, values: [{ typeId: weight.id, value: 79 }] });
-    await addMeasurements(coach, A.id, { measuredOn: today(), note: "am", values: [{ typeId: weight.id, value: 77.5 }] });
+    await addMeasurements(coach, A.id, {
+      measuredOn: addDays(today(), -7),
+      note: null,
+      values: [{ typeId: weight.id, value: 79 }],
+    });
+    await addMeasurements(coach, A.id, {
+      measuredOn: today(),
+      note: "am",
+      values: [{ typeId: weight.id, value: 77.5 }],
+    });
     const p = await getProgress(coach, A.id);
     expect(p.summary.currentWeightKg).toBe(77.5);
     expect(p.summary.changeKg).toBe(-2.5);
@@ -298,7 +400,9 @@ describe("13 · coach-controlled passwords", () => {
     await expect(resetClientPassword(A.actor, A.id, "set", { password: "Hijack!2026" })).rejects.toBeInstanceOf(ForbiddenError);
     await expect(resetClientPassword(B.actor, A.id, "link")).rejects.toBeInstanceOf(ForbiddenError);
 
-    const res = await resetClientPassword(coach, A.id, "set", { password: "CoachSet!2026" });
+    const res = await resetClientPassword(coach, A.id, "set", {
+      password: "CoachSet!2026",
+    });
     expect(res).toEqual({}); // a typed password is never echoed back
     await expect(authenticate(A.actor.email, "CoachSet!2026", null)).resolves.toHaveProperty("id", A.actor.userId);
     await expect(authenticate(A.actor.email, "ClientPass!123", null)).rejects.toThrow();
@@ -311,12 +415,18 @@ describe("13 · coach-controlled passwords", () => {
 
   it("a client can't change the coach-issued password unless the coach allows it", async () => {
     await expect(changePassword(A.actor, "ClientPass!123", "Mine!2026xx")).rejects.toBeInstanceOf(ForbiddenError);
-    await updatePermissions(coach, A.id, { ...DEFAULT_PERMISSIONS, changeOwnPassword: true });
+    await updatePermissions(coach, A.id, {
+      ...DEFAULT_PERMISSIONS,
+      changeOwnPassword: true,
+    });
     await expect(changePassword(A.actor, "ClientPass!123", "Mine!2026xx")).resolves.toBeTruthy();
   });
 
   it("'ask to choose own password' lets the client set one at first sign-in even without the permission", async () => {
-    await resetClientPassword(coach, B.id, "set", { password: "Temp!2026xx", forcePasswordChange: true });
+    await resetClientPassword(coach, B.id, "set", {
+      password: "Temp!2026xx",
+      forcePasswordChange: true,
+    });
     const [u] = await db.select().from(users).where(eq(users.id, B.actor.userId));
     expect(u!.mustChangePassword).toBe(true);
     await expect(changePassword({ ...B.actor, mustChangePassword: true }, undefined, "Chosen!2026x")).resolves.toBeTruthy();
@@ -334,7 +444,10 @@ describe("14 · site access code", () => {
     const [row] = await db.select().from(siteSettings);
     expect(row!.accessCodeEnc).toBeTruthy();
     expect(row!.accessCodeEnc).not.toContain("Ayman");
-    await expect(getAccessSettings(coach)).resolves.toEqual({ enabled: true, code: "Ayman-2026" });
+    await expect(getAccessSettings(coach)).resolves.toEqual({
+      enabled: true,
+      code: "Ayman-2026",
+    });
     await expect(verifyAccessCode("ayman 2026")).resolves.toBe(true);
     await expect(verifyAccessCode("AYMAN-2025")).resolves.toBe(false);
   });

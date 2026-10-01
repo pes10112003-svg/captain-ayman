@@ -21,12 +21,15 @@ export default async function ClientNutritionPage() {
   try {
     data = await getTodayMeals(actor);
   } catch (err) {
-    if (err instanceof ForbiddenError) return <EmptyState icon={<Lock />} title={t.meals.turnedOff} description={translateServerMessage(err.message, locale)} />;
+    if (err instanceof ForbiddenError)
+      return <EmptyState icon={<Lock />} title={t.meals.turnedOff} description={translateServerMessage(err.message, locale)} />;
     throw err;
   }
   const { logs, prefs, permissions, plan } = data;
   const done = logs.filter((l) => l.status === "completed");
   const sum = (k: "totalCalories" | "totalProtein") => Math.round(logs.reduce((a, l) => a + (l[k] ?? 0), 0));
+  const hasCalories = logs.some((l) => l.totalCalories != null);
+  const hasProtein = logs.some((l) => l.totalProtein != null);
   const eaten = (k: "totalCalories" | "totalProtein") => Math.round(done.reduce((a, l) => a + (l[k] ?? 0), 0));
 
   return (
@@ -46,23 +49,33 @@ export default async function ClientNutritionPage() {
                   <span className="text-lg text-muted">/{logs.length}</span>
                 </p>
               </div>
-              <dl className="flex gap-4 text-end text-xs">
-                <div>
-                  <dt className="text-muted">{t.meals.calories}</dt>
-                  <dd className="font-semibold tabular">
-                    {eaten("totalCalories")} / {sum("totalCalories")}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-muted">{t.meals.protein}</dt>
-                  <dd className="font-semibold tabular">
-                    {eaten("totalProtein")} / {sum("totalProtein")} {t.units.g}
-                  </dd>
-                </div>
-              </dl>
+              {hasCalories || hasProtein ? (
+                <dl className="flex gap-4 text-end text-xs">
+                  {hasCalories ? (
+                    <div>
+                      <dt className="text-muted">{t.meals.calories}</dt>
+                      <dd className="font-semibold tabular">
+                        {eaten("totalCalories")} / {sum("totalCalories")}
+                      </dd>
+                    </div>
+                  ) : null}
+                  {hasProtein ? (
+                    <div>
+                      <dt className="text-muted">{t.meals.protein}</dt>
+                      <dd className="font-semibold tabular">
+                        {eaten("totalProtein")} / {sum("totalProtein")} {t.units.g}
+                      </dd>
+                    </div>
+                  ) : null}
+                </dl>
+              ) : null}
             </div>
             <ProgressBar value={(done.length / logs.length) * 100} tone="series-2" className="mt-3" label={t.overview.mealsEaten} />
-            {plan?.notes ? <p dir="auto" className="mt-3 text-start text-sm text-ink-2">{plan.notes}</p> : null}
+            {plan?.notes ? (
+              <p dir="auto" className="mt-3 text-start text-sm text-ink-2">
+                {plan.notes}
+              </p>
+            ) : null}
           </div>
           {!permissions.completeMeals ? (
             <p className="flex items-center gap-2 rounded-2xl bg-surface-2 p-3 text-sm text-ink-2">

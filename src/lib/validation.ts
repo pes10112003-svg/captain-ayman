@@ -3,15 +3,14 @@
  * before touching the database — the same schemas power client-side form hints.
  */
 import { z } from "zod";
-import { GENDER_KEYS, GOAL_KEYS, PERMISSION_KEYS, PHOTO_ANGLE_KEYS } from "./constants";
-import { isIsoDate, isValidTimeZone } from "./time";
+import { GENDER_KEYS, GOAL_KEYS, PERMISSION_KEYS, PHOTO_ANGLE_KEYS, PHOTO_PHASE_KEYS } from "./constants";
+import { isIsoDate } from "./time";
 
 /* ── primitives ─────────────────────────────────────────────── */
 
 const emptyToNull = (v: unknown) => (typeof v === "string" && v.trim() === "" ? null : v);
 
-export const optText = (max: number) =>
-  z.preprocess(emptyToNull, z.string().trim().max(max, `Must be ${max} characters or fewer`).nullable().optional());
+export const optText = (max: number) => z.preprocess(emptyToNull, z.string().trim().max(max, `Must be ${max} characters or fewer`).nullable().optional());
 
 export const optNumber = (min: number, max: number, label = "Value") =>
   z.preprocess(
@@ -37,15 +36,17 @@ export const email = z
   .max(254)
   .transform((v) => v.trim().toLowerCase());
 
-export const password = z
-  .string()
-  .min(8, "Password must be at least 8 characters")
-  .max(128, "Password must be 128 characters or fewer");
+export const password = z.string().min(8, "Password must be at least 8 characters").max(128, "Password must be 128 characters or fewer");
 
 /* ── auth ───────────────────────────────────────────────────── */
 
 export const loginSchema = z.object({
-  email: z.string().trim().min(1, "Email is required").max(254).transform((v) => v.toLowerCase()),
+  email: z
+    .string()
+    .trim()
+    .min(1, "Email is required")
+    .max(254)
+    .transform((v) => v.toLowerCase()),
   password: z.string().min(1, "Password is required").max(200),
 });
 
@@ -55,11 +56,21 @@ export const changePasswordSchema = z
     newPassword: password,
     confirmPassword: z.string(),
   })
-  .refine((d) => d.newPassword === d.confirmPassword, { path: ["confirmPassword"], message: "Passwords don't match" });
+  .refine((d) => d.newPassword === d.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords don't match",
+  });
 
 export const resetPasswordSchema = z
-  .object({ token: z.string().min(20).max(200), newPassword: password, confirmPassword: z.string() })
-  .refine((d) => d.newPassword === d.confirmPassword, { path: ["confirmPassword"], message: "Passwords don't match" });
+  .object({
+    token: z.string().min(20).max(200),
+    newPassword: password,
+    confirmPassword: z.string(),
+  })
+  .refine((d) => d.newPassword === d.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords don't match",
+  });
 
 /* ── clients ────────────────────────────────────────────────── */
 
@@ -153,7 +164,12 @@ export const workoutPlanSchema = z
     const keys = new Set(plan.workouts.map((w) => w.key));
     if (keys.size !== plan.workouts.length) ctx.addIssue({ code: "custom", message: "Duplicate workout keys" });
     plan.schedule.forEach((k, i) => {
-      if (k && !keys.has(k)) ctx.addIssue({ code: "custom", path: ["schedule", i], message: "Unknown workout in schedule" });
+      if (k && !keys.has(k))
+        ctx.addIssue({
+          code: "custom",
+          path: ["schedule", i],
+          message: "Unknown workout in schedule",
+        });
     });
   });
 export type WorkoutPlanInput = z.infer<typeof workoutPlanSchema>;
@@ -212,7 +228,12 @@ export const measurementEntrySchema = z.object({
   measuredOn: isoDate,
   note: z.preprocess(emptyToNull, z.string().trim().max(500).nullable()),
   values: z
-    .array(z.object({ typeId: uuid, value: z.number().finite().gt(0, "Must be greater than 0").lt(10000) }))
+    .array(
+      z.object({
+        typeId: uuid,
+        value: z.number().finite().gt(0, "Must be greater than 0").lt(10000),
+      }),
+    )
     .min(1, "Enter at least one measurement"),
 });
 
@@ -223,6 +244,9 @@ export const measurementTypeSchema = z.object({
 });
 
 export const photoMetaSchema = z.object({
+  /** «قبل» / «بعد». Missing (e.g. a form from an older cached app) → "after", like the column default. */
+  phase: z.preprocess((v) => (v == null || v === "" ? "after" : v), z.enum(PHOTO_PHASE_KEYS)),
+  /** Photo type: front / side / back / inbody / other. */
   angle: z.enum(PHOTO_ANGLE_KEYS),
   takenOn: isoDate,
   note: z.preprocess(emptyToNull, z.string().trim().max(500).nullable().optional()),
@@ -230,13 +254,17 @@ export const photoMetaSchema = z.object({
 
 /* ── settings ───────────────────────────────────────────────── */
 
+/** Only the brand name is editable; timezone (Africa/Cairo), units (kg/cm) and week start (Saturday) are fixed. */
 export const coachSettingsSchema = z.object({
   businessName: z.preprocess(emptyToNull, z.string().trim().max(120).nullable()),
-  timezone: z.string().refine(isValidTimeZone, "Unknown timezone"),
-  weightUnit: z.enum(["kg", "lb"]),
-  lengthUnit: z.enum(["cm", "in"]),
-  weekStartsOn: z.coerce.number().int().min(0).max(6),
 });
+
+export const FIXED_COACH_SETTINGS = {
+  timezone: "Africa/Cairo",
+  weightUnit: "kg",
+  lengthUnit: "cm",
+  weekStartsOn: 6,
+} as const;
 
 export const coachProfileSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -245,7 +273,9 @@ export const coachProfileSchema = z.object({
 
 export function fieldErrors(error: z.ZodError): Record<string, string[]> {
   const flat = z.flattenError(error);
-  const out: Record<string, string[]> = { ...(flat.fieldErrors as Record<string, string[]>) };
+  const out: Record<string, string[]> = {
+    ...(flat.fieldErrors as Record<string, string[]>),
+  };
   if (flat.formErrors.length) out._form = flat.formErrors;
   return out;
 }

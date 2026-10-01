@@ -50,7 +50,7 @@ export function ClientRowActions({ id, name, status }: { id: string; name: strin
           </Link>
         </MenuItem>
         <MenuItem asChild>
-          <Link href={`${base}/permissions`}>
+          <Link href={`${base}/settings#permissions`}>
             <ShieldCheck /> {m.permissions}
           </Link>
         </MenuItem>
@@ -61,7 +61,12 @@ export function ClientRowActions({ id, name, status }: { id: string; name: strin
             start(async () => {
               const next = status === "active" ? "inactive" : "active";
               const res = await setClientStatusAction(id, next);
-              if (res.ok) toast.success(f(next === "inactive" ? m.disabledToast : m.enabledToast, { name }));
+              if (res.ok)
+                toast.success(
+                  f(next === "inactive" ? m.disabledToast : m.enabledToast, {
+                    name,
+                  }),
+                );
               else toast.error(res.error);
             })
           }
