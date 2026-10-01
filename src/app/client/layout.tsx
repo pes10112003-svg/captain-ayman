@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireClientPage } from "@/server/auth/guards";
 import { getClientProfile } from "@/server/services/clients";
 import { Avatar } from "@/components/ui/avatar";
-import { BrandName, LogoMark } from "@/components/shared/logo";
+import { Logo } from "@/components/shared/logo";
 import { LanguageIconButton, ThemeIconButton } from "@/components/shared/preferences";
 import { ClientBottomNav, ClientTopNav } from "@/components/client/client-nav";
 import { getI18n } from "@/i18n/server";
@@ -16,8 +16,7 @@ export default async function ClientAreaLayout({ children }: { children: React.R
       <header className="sticky top-0 z-30 border-b border-line/70 bg-page/85 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-3 px-4 md:h-16">
           <Link href="/client" className="flex min-w-0 items-center gap-2">
-            <LogoMark className="size-7 shrink-0" />
-            <BrandName className="truncate text-[15px] font-semibold tracking-tight" />
+            <Logo size="sm" />
           </Link>
           <ClientTopNav permissions={permissions} />
           <div className="flex shrink-0 items-center gap-0.5">

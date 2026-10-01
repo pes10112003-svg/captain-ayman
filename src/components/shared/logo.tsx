@@ -3,31 +3,35 @@
 import { cn } from "@/lib/utils";
 import { brandName } from "@/lib/constants";
 import { useI18n } from "@/i18n/client";
+import { AYMAN_PATHS, CAPTAIN_PATHS, LOGO_VIEWBOX } from "./logo-paths";
 
-export function LogoMark({ className }: { className?: string }) {
+/**
+ * The Captain Ayman wordmark. "AYMAN" uses the current text colour; "CAPTAIN" uses
+ * --logo-accent (ink on light backgrounds, lime on dark) or lime when `invert` (dark sidebar).
+ */
+export function LogoWordmark({ className, invert }: { className?: string; invert?: boolean }) {
+  const { locale } = useI18n();
+  const accent = invert ? "#C4F042" : "var(--logo-accent)";
   return (
-    <svg viewBox="0 0 32 32" className={cn("size-8", className)} aria-hidden>
-      <rect width="32" height="32" rx="9" fill="#C4F042" />
-      <path d="M7 17.5h4.2l2.6-6.5 4.4 11 2.6-6.5H25" fill="none" stroke="#0B0B0B" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+    <svg viewBox={LOGO_VIEWBOX} className={cn("h-9 w-auto shrink-0", invert ? "text-white" : "text-ink", className)} role="img" aria-label={brandName(locale)}>
+      {CAPTAIN_PATHS.map((d, i) => (
+        <path key={`c${i}`} d={d} fill={accent} />
+      ))}
+      {AYMAN_PATHS.map((d, i) => (
+        <path key={`a${i}`} d={d} fill="currentColor" />
+      ))}
     </svg>
   );
 }
 
-/** Brand name in the viewer's language ("كابتن أيمن" / "Captain Ayman"). */
-export function BrandName({ className }: { className?: string }) {
-  const { locale } = useI18n();
-  return <span className={className}>{brandName(locale)}</span>;
-}
-
-export function Logo({ className, subtitle, invert }: { className?: string; subtitle?: string; invert?: boolean }) {
-  const { locale } = useI18n();
+/** Logo with an optional small caption beside it (business name / tagline). */
+export function Logo({ className, subtitle, invert, size = "md" }: { className?: string; subtitle?: string; invert?: boolean; size?: "sm" | "md" | "lg" }) {
   return (
-    <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <LogoMark />
-      <span className="leading-none">
-        <span className={cn("block text-[17px] font-semibold tracking-tight", invert ? "text-white" : "text-ink")}>{brandName(locale)}</span>
-        {subtitle ? <span className={cn("mt-1 block text-[11px]", invert ? "text-white/55" : "text-muted")}>{subtitle}</span> : null}
-      </span>
+    <span className={cn("inline-flex items-center gap-3", className)}>
+      <LogoWordmark invert={invert} className={{ sm: "h-8", md: "h-10", lg: "h-12" }[size]} />
+      {subtitle ? (
+        <span className={cn("border-s ps-3 text-xs leading-snug", invert ? "border-white/15 text-white/60" : "border-line text-muted")}>{subtitle}</span>
+      ) : null}
     </span>
   );
 }

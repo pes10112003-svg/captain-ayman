@@ -4,7 +4,7 @@
  *  • NEVER caches API responses, private photos or authenticated pages.
  *  • Falls back to /offline for navigations when the network is down.
  */
-const CACHE = "kinetic-static-v1";
+const CACHE = "kinetic-static-v2"; // bump to drop cached icons/assets after a rebrand
 const OFFLINE_URL = "/offline";
 
 self.addEventListener("install", (event) => {

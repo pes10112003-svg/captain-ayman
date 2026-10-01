@@ -22,7 +22,7 @@ export async function AuthShell({ children }: { children: React.ReactNode }) {
           }}
           aria-hidden
         />
-        <Logo invert subtitle={t.brand.tagline} />
+        <Logo invert size="lg" subtitle={t.brand.tagline} />
         <div className="relative max-w-md">
           <h2 className="text-5xl font-semibold leading-[1.15] tracking-tight">
             {t.auth.heroTitle} <span className="text-[#C4F042]">{t.auth.heroAccent}</span>

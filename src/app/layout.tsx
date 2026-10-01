@@ -8,6 +8,7 @@ import "@fontsource/ibm-plex-sans-arabic/arabic-500.css";
 import "@fontsource/ibm-plex-sans-arabic/arabic-600.css";
 import "@fontsource/ibm-plex-sans-arabic/arabic-700.css";
 import { ServiceWorkerRegister } from "@/components/shared/sw-register";
+import { Splash } from "@/components/shared/splash";
 import { I18nProvider } from "@/i18n/client";
 import { DICTS, getI18n, getTheme } from "@/i18n/server";
 import { brandName } from "@/lib/constants";
@@ -24,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
     appleWebApp: { capable: true, title: name, statusBarStyle: "default" },
     formatDetection: { telephone: false },
     robots: { index: false, follow: false },
-    icons: { icon: "/icon.svg", apple: "/icons/apple-touch-icon.png" },
+    icons: { icon: "/icon.svg?v=2", apple: "/icons/apple-touch-icon-v2.png" },
   };
 }
 
@@ -62,6 +63,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       suppressHydrationWarning
     >
       <body className="min-h-dvh">
+        <Splash />
         <I18nProvider locale={locale} dict={DICTS[locale]}>
           {children}
           <Toaster

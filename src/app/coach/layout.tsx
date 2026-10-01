@@ -16,7 +16,7 @@ export default async function CoachLayout({ children }: { children: React.ReactN
     <div className="min-h-dvh lg:ps-64">
       <aside className="fixed inset-y-0 start-0 z-40 hidden w-64 flex-col border-e border-sidebar-border bg-sidebar px-4 pb-4 pt-5 text-sidebar-fg lg:flex">
         <Link href="/coach" className="px-2">
-          <Logo invert subtitle={prefs.businessName ?? t.brand.tagline} />
+          <Logo invert size="lg" subtitle={prefs.businessName ?? t.brand.tagline} />
         </Link>
         <div className="mt-8 flex flex-1 flex-col overflow-y-auto">
           <CoachNavLinks />

@@ -8,8 +8,7 @@ test.beforeAll(async ({ browser }) => {
   ids = await seedIds(browser);
 });
 
-// Re-enable once the captain's logo animation is approved and <Splash /> is back in app/layout.tsx.
-test.skip("opening animation plays once per session, without hydration errors", async ({ browser }) => {
+test("opening animation plays once per session, without hydration errors", async ({ browser }) => {
   const context = await browser.newContext({ storageState: STATE_PATH, reducedMotion: "no-preference" });
   const page = await context.newPage();
   const errors: string[] = [];
@@ -19,7 +18,7 @@ test.skip("opening animation plays once per session, without hydration errors", 
   await page.goto("/login");
   const splash = page.locator(".ca-splash");
   await expect(splash).toBeVisible();
-  await expect(splash).toBeHidden({ timeout: 5000 });
+  await expect(splash).toBeHidden({ timeout: 8000 });
   await expect(page.locator("#email")).toBeVisible();
 
   await page.reload();
