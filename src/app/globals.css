@@ -1,0 +1,303 @@
+@import "tailwindcss";
+
+/* ───────────────────────── Design tokens ─────────────────────────
+   Semantic colours live in CSS variables so light/dark swap in one place.
+   Chart series colours are the validated categorical palette (CVD-safe). */
+
+:root {
+  color-scheme: light;
+  --page: #f6f6f3;
+  --surface: #ffffff;
+  --surface-2: #f4f4f1;
+  --surface-3: #ebebe6;
+  --border: #e5e4de;
+  --border-strong: #d3d2ca;
+  --ink: #0b0b0b;
+  --ink-2: #4a4946;
+  --muted: #6e6c66;
+
+  --brand: #c4f042;
+  --brand-ink: #0b0b0b;
+  --brand-soft: #f1fbd4;
+
+  --primary: #0b0b0b;
+  --primary-fg: #ffffff;
+  --primary-hover: #2a2a28;
+  --ring: #2a78d6;
+
+  --good: #0ca30c;
+  --good-text: #0a6b0a;
+  --good-soft: #e7f6e5;
+  --warn: #fab219;
+  --warn-text: #8a5700;
+  --warn-soft: #fff4d8;
+  --crit: #d03b3b;
+  --crit-text: #b22a2a;
+  --crit-soft: #fdecec;
+  --info: #2a78d6;
+  --info-text: #1c5cab;
+  --info-soft: #e9f1fc;
+
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --grid: #e8e7e1;
+  --axis: #c3c2b7;
+
+  --sidebar: #0e0e0d;
+  --sidebar-fg: #e7e6e0;
+  --sidebar-muted: #93918a;
+  --sidebar-hover: #1d1d1b;
+  --sidebar-border: #232321;
+
+  --shadow-sm: 0 1px 2px rgb(11 11 11 / 0.04), 0 1px 1px rgb(11 11 11 / 0.03);
+  --shadow-md: 0 8px 24px -8px rgb(11 11 11 / 0.12), 0 2px 6px rgb(11 11 11 / 0.05);
+  --shadow-lg: 0 24px 64px -16px rgb(11 11 11 / 0.25);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #171716;
+    --surface-2: #1f1f1d;
+    --surface-3: #292927;
+    --border: #2b2b29;
+    --border-strong: #3b3b38;
+    --ink: #f4f4f0;
+    --ink-2: #c7c6bd;
+    --muted: #9b998f;
+    --brand-soft: #26300c;
+    --primary: #c4f042;
+    --primary-fg: #0b0b0b;
+    --primary-hover: #d4f86e;
+    --ring: #6da7ec;
+    --good-text: #4ed04e;
+    --good-soft: rgb(12 163 12 / 0.16);
+    --warn-text: #ffc24d;
+    --warn-soft: rgb(250 178 25 / 0.14);
+    --crit-text: #ff7a7a;
+    --crit-soft: rgb(208 59 59 / 0.18);
+    --info-text: #86b6ef;
+    --info-soft: rgb(57 135 229 / 0.16);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --grid: #2a2a28;
+    --axis: #3b3b38;
+    --sidebar: #0a0a0a;
+    --sidebar-hover: #1a1a19;
+    --sidebar-border: #1f1f1d;
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 8px 24px -8px rgb(0 0 0 / 0.6);
+    --shadow-lg: 0 24px 64px -16px rgb(0 0 0 / 0.8);
+  }
+}
+
+/* Explicit dark choice (theme switch) — same tokens as the OS-dark block above. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #171716;
+  --surface-2: #1f1f1d;
+  --surface-3: #292927;
+  --border: #2b2b29;
+  --border-strong: #3b3b38;
+  --ink: #f4f4f0;
+  --ink-2: #c7c6bd;
+  --muted: #9b998f;
+  --brand-soft: #26300c;
+  --primary: #c4f042;
+  --primary-fg: #0b0b0b;
+  --primary-hover: #d4f86e;
+  --ring: #6da7ec;
+  --good-text: #4ed04e;
+  --good-soft: rgb(12 163 12 / 0.16);
+  --warn-text: #ffc24d;
+  --warn-soft: rgb(250 178 25 / 0.14);
+  --crit-text: #ff7a7a;
+  --crit-soft: rgb(208 59 59 / 0.18);
+  --info-text: #86b6ef;
+  --info-soft: rgb(57 135 229 / 0.16);
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --grid: #2a2a28;
+  --axis: #3b3b38;
+  --sidebar: #0a0a0a;
+  --sidebar-hover: #1a1a19;
+  --sidebar-border: #1f1f1d;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 8px 24px -8px rgb(0 0 0 / 0.6);
+  --shadow-lg: 0 24px 64px -16px rgb(0 0 0 / 0.8);
+}
+
+
+@theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-soft: var(--brand-soft);
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
+  --color-primary-hover: var(--primary-hover);
+  --color-ring: var(--ring);
+  --color-good: var(--good);
+  --color-good-text: var(--good-text);
+  --color-good-soft: var(--good-soft);
+  --color-warn: var(--warn);
+  --color-warn-text: var(--warn-text);
+  --color-warn-soft: var(--warn-soft);
+  --color-crit: var(--crit);
+  --color-crit-text: var(--crit-text);
+  --color-crit-soft: var(--crit-soft);
+  --color-info: var(--info);
+  --color-info-text: var(--info-text);
+  --color-info-soft: var(--info-soft);
+  --color-series-1: var(--series-1);
+  --color-series-2: var(--series-2);
+  --color-series-3: var(--series-3);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-fg: var(--sidebar-fg);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-border: var(--sidebar-border);
+  --font-sans: var(--font-geist-sans), "IBM Plex Sans Arabic", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --shadow-card: var(--shadow-sm);
+  --shadow-pop: var(--shadow-md);
+  --shadow-modal: var(--shadow-lg);
+  --animate-fade-in: fade-in 160ms ease-out;
+  --animate-pop: pop 180ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  --animate-slide-up: slide-up 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pop {
+  0% { transform: scale(0.85); }
+  60% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  /* Arabic: Plex Arabic first, comfortable line-height, and never letter-space (it breaks joined letters). */
+  html[lang="ar"] body {
+    font-family: "IBM Plex Sans Arabic", var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  }
+  html[lang="ar"] *,
+  html[lang="ar"] *::before,
+  html[lang="ar"] *::after {
+    letter-spacing: 0 !important;
+  }
+  ::selection {
+    background: var(--brand);
+    color: var(--brand-ink);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+}
+
+@layer utilities {
+  /* Theme-dependent visibility (light/dark icons in the theme toggle). */
+  .light-hidden {
+    display: none;
+  }
+  :root[data-theme="dark"] .light-hidden {
+    display: inline-block;
+  }
+  :root[data-theme="dark"] .dark-hidden {
+    display: none;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .light-hidden {
+      display: inline-block;
+    }
+    :root:not([data-theme="light"]) .dark-hidden {
+      display: none;
+    }
+  }
+  /* Mirror direction-bearing icons (arrows/chevrons) in RTL. */
+  [dir="rtl"] .rtl-flip {
+    transform: scaleX(-1);
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pb-safe-nav {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* Recharts: keep chart chrome recessive and inherit the app font. */
+.recharts-wrapper,
+.recharts-surface {
+  font-family: var(--font-sans);
+}
+.recharts-cartesian-grid line {
+  stroke: var(--grid);
+}
+.recharts-text {
+  fill: var(--muted);
+  font-size: 11px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
