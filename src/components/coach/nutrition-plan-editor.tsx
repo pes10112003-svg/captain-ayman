@@ -121,6 +121,7 @@ function totals(items: ItemDraft[]) {
   };
 }
 const r = (v: number) => Math.round(v * 10) / 10;
+const MACROS = ["calories", "protein", "carbs", "fats"] as const;
 
 export function NutritionPlanEditor({ clientId, initial }: { clientId: string; initial: NutritionEditorPlan }) {
   const { t, f, fmt } = useI18n();
@@ -415,7 +416,10 @@ function SortableMeal({
     });
   const parse = (v: string): Num => (v === "" ? "" : Number(v));
   const numCell =
-    "h-9 w-full min-w-14 rounded-lg border border-line bg-surface px-2 text-end tabular outline-none focus:border-ring focus:ring-2 focus:ring-ring/20";
+    "h-9 w-full min-w-0 rounded-lg border border-line bg-surface px-2 text-end tabular outline-none focus:border-ring focus:ring-2 focus:ring-ring/20";
+  // Phones: food | quantity | ✕ (values wrap below). Wider screens: one row with every column.
+  const rowCols = "grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_2rem]";
+  const gridCols = showMacros ? "sm:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_repeat(4,4.75rem)_2rem]" : "sm:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_2rem]";
 
   return (
     <li
@@ -441,7 +445,7 @@ function SortableMeal({
           maxLength={80}
           aria-label={ne.mealName}
           placeholder={ne.mealName}
-          className="min-w-0 flex-1 rounded-lg bg-transparent px-1 py-1 text-[15px] font-semibold outline-none focus:bg-surface-2"
+          className="min-w-36 flex-1 rounded-lg bg-transparent px-1 py-1 text-[15px] font-semibold outline-none focus:bg-surface-2"
         />
         <label className="relative flex items-center">
           <Clock className="pointer-events-none absolute start-2.5 size-3.5 text-muted" />
@@ -484,100 +488,94 @@ function SortableMeal({
         </p>
       ) : (
         <div className="border-t border-line p-3 sm:p-4">
-          <div className="overflow-x-auto rounded-xl border border-line">
-            <table className={cn("w-full text-sm", showMacros && "min-w-[640px]")}>
-              <thead className="bg-surface-2 text-xs text-muted">
-                <tr>
-                  <th className="py-2 ps-3 text-start font-medium">{ne.food}</th>
-                  <th className="py-2 ps-2 text-start font-medium">{ne.quantity}</th>
+          {/* Food items: a table-like grid on wider screens; on phones each item wraps
+              (food + quantity on one line, the optional values underneath) so nothing scrolls sideways. */}
+          <div className="rounded-xl border border-line text-sm">
+            <div className={cn("hidden gap-1.5 bg-surface-2 px-3 py-2 text-xs font-medium text-muted sm:grid", gridCols)}>
+              <span>{ne.food}</span>
+              <span>{ne.quantity}</span>
+              {showMacros
+                ? MACROS.map((k) => (
+                    <span key={k} className="text-end">
+                      {macroLabel[k]}
+                    </span>
+                  ))
+                : null}
+              <span />
+            </div>
+            <ul className="divide-y divide-line">
+              {m.items.map((i) => (
+                <li key={i.key} className={cn("grid items-center gap-1.5 px-2 py-2 sm:px-3 sm:py-1.5", rowCols, gridCols)}>
+                  <input
+                    value={i.name}
+                    maxLength={120}
+                    onChange={(e) => setItem(i.key, { name: e.target.value })}
+                    placeholder={ne.foodPh}
+                    aria-label={ne.food}
+                    className="h-9 w-full min-w-0 rounded-lg border border-line bg-surface px-2.5 outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                  />
+                  <input
+                    value={i.quantity}
+                    maxLength={60}
+                    onChange={(e) => setItem(i.key, { quantity: e.target.value })}
+                    placeholder={ne.quantityPh}
+                    aria-label={ne.quantity}
+                    className="h-9 w-full min-w-0 rounded-lg border border-line bg-surface px-2.5 outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                  />
                   {showMacros ? (
-                    <>
-                      <th className="w-20 py-2 ps-2 text-end font-medium">{ne.kcal}</th>
-                      <th className="w-20 py-2 ps-2 text-end font-medium">{ne.proteinG}</th>
-                      <th className="w-20 py-2 ps-2 text-end font-medium">{ne.carbsG}</th>
-                      <th className="w-20 py-2 ps-2 text-end font-medium">{ne.fatsG}</th>
-                    </>
+                    <div className="grid grid-cols-4 gap-1.5 max-sm:col-span-3 max-sm:row-start-2 sm:contents">
+                      {MACROS.map((k) => (
+                        <label key={k} className="min-w-0">
+                          <span className="mb-0.5 block truncate text-[10px] text-muted sm:hidden">{macroLabel[k]}</span>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            min={0}
+                            step="0.1"
+                            value={i[k]}
+                            onChange={(e) => setItem(i.key, { [k]: parse(e.target.value) })}
+                            aria-label={macroLabel[k]}
+                            className={numCell}
+                          />
+                        </label>
+                      ))}
+                    </div>
                   ) : null}
-                  <th className="w-10" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {m.items.map((i) => (
-                  <tr key={i.key}>
-                    <td className="py-1.5 pe-1 ps-3">
-                      <input
-                        value={i.name}
-                        maxLength={120}
-                        onChange={(e) => setItem(i.key, { name: e.target.value })}
-                        placeholder={ne.foodPh}
-                        aria-label={ne.food}
-                        className="h-9 w-full rounded-lg border border-line bg-surface px-2.5 outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-                      />
-                    </td>
-                    <td className="px-1 py-1.5">
-                      <input
-                        value={i.quantity}
-                        maxLength={60}
-                        onChange={(e) => setItem(i.key, { quantity: e.target.value })}
-                        placeholder={ne.quantityPh}
-                        aria-label={ne.quantity}
-                        className="h-9 w-full rounded-lg border border-line bg-surface px-2.5 outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-                      />
-                    </td>
-                    {(showMacros ? (["calories", "protein", "carbs", "fats"] as const) : []).map((k) => (
-                      <td key={k} className="px-1 py-1.5">
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          min={0}
-                          step="0.1"
-                          value={i[k]}
-                          onChange={(e) => setItem(i.key, { [k]: parse(e.target.value) })}
-                          aria-label={macroLabel[k]}
-                          className={numCell}
-                        />
-                      </td>
-                    ))}
-                    <td className="pe-1.5 text-end">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onChange({
-                            items: m.items.filter((x) => x.key !== i.key),
-                          })
-                        }
-                        className="grid size-8 place-items-center rounded-lg text-muted hover:bg-crit-soft hover:text-crit-text"
-                        aria-label={ne.removeFood}
-                      >
-                        <X className="size-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="border-t border-line bg-surface-2/50 text-xs font-semibold">
-                <tr>
-                  <td className="py-2 ps-3" colSpan={2}>
-                    <button
-                      type="button"
-                      onClick={() => onChange({ items: [...m.items, newItem()] })}
-                      className="inline-flex items-center gap-1.5 font-medium text-ink-2 hover:text-ink"
-                    >
-                      <Plus className="size-3.5" /> {ne.addFood}
-                    </button>
-                  </td>
-                  {showMacros ? (
-                    <>
-                      <td className="py-2 pe-3 text-end tabular">{fmt.num(r(tot.calories))}</td>
-                      <td className="py-2 pe-3 text-end tabular">{fmt.num(r(tot.protein))}</td>
-                      <td className="py-2 pe-3 text-end tabular">{fmt.num(r(tot.carbs))}</td>
-                      <td className="py-2 pe-3 text-end tabular">{fmt.num(r(tot.fats))}</td>
-                    </>
-                  ) : null}
-                  <td />
-                </tr>
-              </tfoot>
-            </table>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onChange({
+                        items: m.items.filter((x) => x.key !== i.key),
+                      })
+                    }
+                    className="grid size-8 place-items-center justify-self-end rounded-lg text-muted hover:bg-crit-soft hover:text-crit-text max-sm:col-start-3 max-sm:row-start-1"
+                    aria-label={ne.removeFood}
+                  >
+                    <X className="size-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className={cn("grid items-center gap-1.5 border-t border-line bg-surface-2/50 px-3 py-2 text-xs font-semibold", rowCols, gridCols)}>
+              <button
+                type="button"
+                onClick={() => onChange({ items: [...m.items, newItem()] })}
+                className="col-span-2 inline-flex items-center gap-1.5 justify-self-start font-medium text-ink-2 hover:text-ink"
+              >
+                <Plus className="size-3.5" /> {ne.addFood}
+              </button>
+              {showMacros ? (
+                <div className="grid grid-cols-4 gap-1.5 max-sm:col-span-3 max-sm:row-start-2 sm:contents">
+                  {MACROS.map((k) => (
+                    <span key={k} className="min-w-0 text-end tabular max-sm:text-start">
+                      <span className="block text-[10px] font-normal text-muted sm:hidden">{macroLabel[k]}</span>
+                      {fmt.num(r(tot[k]))}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+              <span />
+            </div>
           </div>
           <div className="mt-3 flex flex-wrap items-start gap-x-2 gap-y-1">
             <button

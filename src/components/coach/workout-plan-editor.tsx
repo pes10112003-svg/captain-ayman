@@ -406,7 +406,7 @@ export function WorkoutPlanEditor({
       <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">{t.workoutEditor.workoutDays}</p>
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-none lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:flex-col">
             {plan.workouts.map((w) => {
               const days = plan.schedule.map((k, i) => (k === w.key ? fmt.weekdayName(i, "short") : null)).filter(Boolean);
               return (
@@ -415,11 +415,11 @@ export function WorkoutPlanEditor({
                   type="button"
                   onClick={() => setSelected(w.key)}
                   className={cn(
-                    "flex min-w-40 shrink-0 flex-col items-start rounded-xl border px-3.5 py-3 text-start transition lg:min-w-0",
+                    "flex min-w-0 flex-col items-start rounded-xl border px-3.5 py-3 text-start transition",
                     selected === w.key ? "border-ink bg-surface shadow-card" : "border-line bg-surface/60 hover:border-line-strong",
                   )}
                 >
-                  <span className="text-sm font-semibold">{w.title || t.workoutEditor.untitled}</span>
+                  <span className="w-full truncate text-sm font-semibold">{w.title || t.workoutEditor.untitled}</span>
                   <span className="mt-0.5 text-xs text-muted">
                     {f(t.workoutEditor.exercisesShort, {
                       n: fmt.num(w.exercises.length, 0),
@@ -429,7 +429,7 @@ export function WorkoutPlanEditor({
                 </button>
               );
             })}
-            <Button variant="secondary" className="shrink-0 justify-start lg:w-full" onClick={addWorkout}>
+            <Button variant="secondary" className="col-span-2 h-auto min-h-10 sm:col-span-3 lg:w-full lg:justify-start" onClick={addWorkout}>
               <Plus /> {t.workoutEditor.addDay}
             </Button>
           </div>
