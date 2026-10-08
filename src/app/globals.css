@@ -516,6 +516,14 @@ html[data-protect="on"] img {
 html[data-privacy="on"] body {
   visibility: hidden;
 }
+.ca-watermark {
+  position: fixed;
+  inset: 0;
+  z-index: 1000; /* above dialogs and menus, below the opening splash */
+  pointer-events: none;
+  background-repeat: repeat;
+  background-size: 300px 190px;
+}
 @media print {
   html[data-protect="on"] body {
     display: none !important;
