@@ -28,7 +28,7 @@ export function DialogContent({
   const width = { sm: "sm:max-w-md", md: "sm:max-w-lg", lg: "sm:max-w-2xl", xl: "sm:max-w-5xl" }[size];
   return (
     <RD.Portal>
-      <RD.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] data-[state=open]:animate-fade-in" />
+      <RD.Overlay className="fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-fade-in" />
       <RD.Content
         className={cn(
           "fixed inset-x-0 bottom-0 z-50 max-h-[92dvh] overflow-y-auto rounded-t-3xl border border-line bg-surface p-5 shadow-modal outline-none data-[state=open]:animate-slide-up sm:inset-auto sm:left-1/2 sm:top-1/2 sm:w-full sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:p-6",

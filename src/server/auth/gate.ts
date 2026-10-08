@@ -21,7 +21,10 @@ const TTL_MS = 10_000;
 let cached: { enabled: boolean; version: string; codeEnc: string | null; at: number } | null = null;
 
 export function normalizeAccessCode(input: string) {
-  return input.normalize("NFKC").toUpperCase().replace(/[\s\-_.]/g, "");
+  return input
+    .normalize("NFKC")
+    .toUpperCase()
+    .replace(/[\s\-_.]/g, "");
 }
 
 export async function getGateState(fresh = false) {
@@ -61,7 +64,11 @@ export async function hasValidAccess(): Promise<boolean> {
   const raw = (await cookies()).get(ACCESS_COOKIE)?.value;
   if (!raw) return false;
   const [version] = raw.split(".");
-  return version === s.version && safeEqual(raw, cookieValue(s.version));
+  if (version === s.version) return safeEqual(raw, cookieValue(s.version));
+  // A cookie for another version: re-check the database before refusing, so a code that was just
+  // changed (possibly from another server instance with its own cache) works immediately.
+  const fresh = await getGateState(true);
+  return version === fresh.version && safeEqual(raw, cookieValue(fresh.version));
 }
 
 /** Issue an access cookie for the current version (server actions / route handlers only). */

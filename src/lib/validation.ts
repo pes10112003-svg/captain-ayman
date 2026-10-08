@@ -129,6 +129,10 @@ export const permissionsSchema = z.object(
 /* ── workouts ───────────────────────────────────────────────── */
 
 export const workoutSetInput = z.object({
+  /** 0-based week of the training sheet (plans without weeks use 0). */
+  week: z.number().int().min(0).max(11).default(0),
+  /** Column in the sheet (set 1, set 2…). Defaults to the set's order within its week. */
+  setNumber: z.number().int().min(1).max(20).optional(),
   targetReps: z.number().int().min(0).max(1000),
   /** display unit (kg/lb); null = bodyweight */
   targetWeight: z.number().min(0).max(2000).nullable(),
@@ -140,7 +144,7 @@ export const workoutExerciseInput = z.object({
   tempo: z.string().trim().max(20).nullable(),
   notes: z.string().trim().max(2000).nullable(),
   videoUrl: z.preprocess(emptyToNull, httpUrl.nullable()),
-  sets: z.array(workoutSetInput).min(1, "Add at least one set").max(20),
+  sets: z.array(workoutSetInput).min(1, "Add at least one set").max(240),
 });
 
 export const workoutInput = z.object({
@@ -149,6 +153,8 @@ export const workoutInput = z.object({
   title: z.string().trim().min(1, "Workout title is required").max(80),
   muscleGroup: z.string().trim().max(80).nullable(),
   instructions: z.string().trim().max(4000).nullable(),
+  /** Set columns shown in this day's sheet. */
+  setCount: z.number().int().min(1).max(10).default(4),
   exercises: z.array(workoutExerciseInput).max(40),
 });
 
@@ -156,13 +162,25 @@ export const workoutPlanSchema = z
   .object({
     name: z.string().trim().min(1, "Plan name is required").max(120),
     notes: z.string().trim().max(4000).nullable(),
-    workouts: z.array(workoutInput).max(14),
+    /** Weeks in the training-sheet cycle (week 1 … N). */
+    weekCount: z.number().int().min(1).max(12).default(1),
+    /** First day of week 1; null keeps the current start (or starts this week for a new plan). */
+    startsOn: z.preprocess(emptyToNull, isoDate.nullable()).optional(),
+    workouts: z.array(workoutInput).max(30),
     /** index 0 = Sunday … 6 = Saturday → workout `key` or null (rest) */
     schedule: z.array(z.string().max(64).nullable()).length(7),
   })
   .superRefine((plan, ctx) => {
     const keys = new Set(plan.workouts.map((w) => w.key));
     if (keys.size !== plan.workouts.length) ctx.addIssue({ code: "custom", message: "Duplicate workout keys" });
+    plan.workouts.forEach((w, wi) =>
+      w.exercises.forEach((e, ei) =>
+        e.sets.forEach((st, si) => {
+          if (st.week >= plan.weekCount)
+            ctx.addIssue({ code: "custom", path: ["workouts", wi, "exercises", ei, "sets", si, "week"], message: "Set week is outside the plan" });
+        }),
+      ),
+    );
     plan.schedule.forEach((k, i) => {
       if (k && !keys.has(k))
         ctx.addIssue({

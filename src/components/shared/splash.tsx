@@ -3,7 +3,7 @@ import { AYMAN_PATHS, CAPTAIN_PATHS } from "./logo-paths";
 
 /**
  * Opening animation (the "draw" version the team picked): the Captain Ayman logo is traced
- * letter by letter, fills in, gets a light sweep, then fades into the page.
+ * letter by letter, fills in, gets a light sweep, greets with "Welcome to my family", then fades into the page.
  * Plays once per browser session (and on every launch of the installed app). Pure CSS
  * (globals.css → .ca-splash); it ends hidden and never blocks the page afterwards.
  * The inline script runs before the splash is painted and switches it off when it was
@@ -40,6 +40,9 @@ export async function Splash() {
             <rect className="ca-sweep" x="-600" y="-60" width="420" height="1407" fill="url(#ca-sweep)" />
           </g>
         </svg>
+        <p className="ca-splash__welcome" dir="ltr">
+          Welcome to my <span>family</span>
+        </p>
       </div>
     </>
   );

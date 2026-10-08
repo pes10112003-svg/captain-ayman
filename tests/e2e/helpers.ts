@@ -10,6 +10,8 @@ export async function login(page: Page, who: { email: string; password: string }
   await page.fill("#email", who.email);
   await page.fill("#password", who.password);
   await Promise.all([page.waitForURL((u) => !u.pathname.startsWith("/login")), page.click("button[type=submit]")]);
+  // Fail loudly if the shared access cookie was stale (we'd land on /access instead of the app).
+  expect(new URL(page.url()).pathname, "signed in").not.toMatch(/^\/access/);
 }
 
 export async function newSession(browser: Browser, who: { email: string; password: string }) {

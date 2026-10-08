@@ -25,7 +25,10 @@ export async function truncateAll() {
 
 export async function makeCoach(name = "Coach"): Promise<Actor> {
   const email = `coach${++n}@test.local`;
-  const [u] = await db.insert(users).values({ email, name, role: "coach", passwordHash: await hashPassword("CoachPass!123") }).returning();
+  const [u] = await db
+    .insert(users)
+    .values({ email, name, role: "coach", passwordHash: await hashPassword("CoachPass!123") })
+    .returning();
   await db.insert(coachSettings).values({ coachId: u!.id, timezone: "UTC" });
   return { sessionId: crypto.randomUUID(), userId: u!.id, role: "coach", name, email, clientId: null, coachId: u!.id, mustChangePassword: false };
 }
@@ -49,7 +52,16 @@ export async function makeClient(coach: Actor, fullName: string): Promise<{ id: 
   });
   return {
     id: client.id,
-    actor: { sessionId: crypto.randomUUID(), userId: client.userId, role: "client", name: fullName, email, clientId: client.id, coachId: coach.userId, mustChangePassword: false },
+    actor: {
+      sessionId: crypto.randomUUID(),
+      userId: client.userId,
+      role: "client",
+      name: fullName,
+      email,
+      clientId: client.id,
+      coachId: coach.userId,
+      mustChangePassword: false,
+    },
   };
 }
 
@@ -58,6 +70,7 @@ export function pushPlan(reps = 12, workoutId?: string): WorkoutPlanInput {
   return {
     name: "Test plan",
     notes: null,
+    weekCount: 1,
     schedule: Array(7).fill("push"),
     workouts: [
       {
@@ -66,8 +79,16 @@ export function pushPlan(reps = 12, workoutId?: string): WorkoutPlanInput {
         title: "PUSH",
         muscleGroup: "Chest",
         instructions: null,
+        setCount: 4,
         exercises: [
-          { name: "Bench Press", restSeconds: 90, tempo: null, notes: null, videoUrl: null, sets: [0, 1, 2].map(() => ({ targetReps: reps, targetWeight: 40 })) },
+          {
+            name: "Bench Press",
+            restSeconds: 90,
+            tempo: null,
+            notes: null,
+            videoUrl: null,
+            sets: [0, 1, 2].map(() => ({ week: 0, targetReps: reps, targetWeight: 40 })),
+          },
         ],
       },
     ],
@@ -78,8 +99,22 @@ export const mealPlan: NutritionPlanInput = {
   name: "Meals",
   notes: null,
   meals: [
-    { id: null, name: "Breakfast", time: "08:00", notes: null, referenceUrl: null, items: [{ name: "Eggs", quantity: "3", calories: 215, protein: 19, carbs: 1, fats: 15 }] },
-    { id: null, name: "Lunch", time: "14:00", notes: null, referenceUrl: null, items: [{ name: "Chicken", quantity: "200 g", calories: 330, protein: 62, carbs: 0, fats: 7 }] },
+    {
+      id: null,
+      name: "Breakfast",
+      time: "08:00",
+      notes: null,
+      referenceUrl: null,
+      items: [{ name: "Eggs", quantity: "3", calories: 215, protein: 19, carbs: 1, fats: 15 }],
+    },
+    {
+      id: null,
+      name: "Lunch",
+      time: "14:00",
+      notes: null,
+      referenceUrl: null,
+      items: [{ name: "Chicken", quantity: "200 g", calories: 330, protein: 62, carbs: 0, fats: 7 }],
+    },
   ],
 };
 
@@ -89,6 +124,8 @@ export async function withPlans(coach: Actor, clientId: string) {
 }
 
 export async function pngFile(name = "photo.png") {
-  const buf = await sharp({ create: { width: 64, height: 96, channels: 3, background: { r: 120, g: 140, b: 160 } } }).png().toBuffer();
+  const buf = await sharp({ create: { width: 64, height: 96, channels: 3, background: { r: 120, g: 140, b: 160 } } })
+    .png()
+    .toBuffer();
   return new File([new Uint8Array(buf)], name, { type: "image/png" });
 }

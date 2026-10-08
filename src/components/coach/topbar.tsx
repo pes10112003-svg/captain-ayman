@@ -37,18 +37,31 @@ export function notificationText(n: CoachNotification, t: Dict): { title: string
       title: interpolate(t.notifications.workoutCompleted, { name: s(d.clientName), workout: s(d.workout) }),
       body: d.pct != null ? interpolate(t.notifications.completion, { pct: s(d.pct) }) : n.body,
     };
-  if (n.type === "photo.uploaded_by_client" && d.clientName) return { title: interpolate(t.notifications.photoUploaded, { name: s(d.clientName) }), body: null };
+  if (n.type === "photo.uploaded_by_client" && d.clientName)
+    return { title: interpolate(t.notifications.photoUploaded, { name: s(d.clientName) }), body: null };
   if (n.type === "plan.updated" && d.plan)
     return { title: d.plan === "workout" ? t.notifications.workoutPlanUpdated : t.notifications.nutritionPlanUpdated, body: null };
   return { title: n.title, body: n.body };
 }
 
-export function CoachTopbar({ name, email, brand, notifications, unread }: { name: string; email: string; brand?: string | null; notifications: CoachNotification[]; unread: number }) {
+export function CoachTopbar({
+  name,
+  email,
+  brand,
+  notifications,
+  unread,
+}: {
+  name: string;
+  email: string;
+  brand?: string | null;
+  notifications: CoachNotification[];
+  unread: number;
+}) {
   const { t, f, fmt } = useI18n();
   const [menuOpen, setMenuOpen] = useState(false);
   const [pending, start] = useTransition();
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-page/85 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 border-b border-line bg-page md:bg-page/85 md:backdrop-blur-xl">
       <div className="flex h-16 items-center gap-2 px-4 sm:gap-3 sm:px-6 lg:px-8">
         <RD.Root open={menuOpen} onOpenChange={setMenuOpen}>
           <RD.Trigger className="grid size-10 shrink-0 place-items-center rounded-xl text-ink-2 hover:bg-surface-2 lg:hidden" aria-label={t.nav.open}>
@@ -61,7 +74,10 @@ export function CoachTopbar({ name, email, brand, notifications, unread }: { nam
               <RD.Description className="sr-only">{t.nav.main}</RD.Description>
               <div className="mb-6 flex items-center justify-between px-1 pt-1">
                 <Logo invert subtitle={brand ?? t.brand.tagline} />
-                <RD.Close className="grid size-9 place-items-center rounded-lg text-sidebar-muted hover:bg-sidebar-hover hover:text-white" aria-label={t.nav.close}>
+                <RD.Close
+                  className="grid size-9 place-items-center rounded-lg text-sidebar-muted hover:bg-sidebar-hover hover:text-white"
+                  aria-label={t.nav.close}
+                >
                   <X className="size-5" />
                 </RD.Close>
               </div>

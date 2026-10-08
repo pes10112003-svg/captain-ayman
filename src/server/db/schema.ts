@@ -218,6 +218,10 @@ export const workoutPlans = pgTable(
     name: varchar("name", { length: 120 }).notNull(),
     notes: text("notes"),
     isActive: boolean("is_active").notNull().default(true),
+    /** Training-sheet cycle: how many weeks of targets the coach writes (week 1 … N). */
+    weekCount: smallint("week_count").notNull().default(1),
+    /** First day of week 1. The current week is counted from here (and stays on the last week after the cycle). */
+    startsOn: date("starts_on", { mode: "string" }),
     /** Bumped on every structural edit — used to re-sync *untouched* snapshots for today. */
     contentUpdatedAt: timestamp("content_updated_at", { withTimezone: true }).notNull().defaultNow(),
     createdAt: createdAt(),
@@ -241,6 +245,8 @@ export const workouts = pgTable(
     title: varchar("title", { length: 80 }).notNull(),
     muscleGroup: varchar("muscle_group", { length: 80 }),
     instructions: text("instructions"),
+    /** Number of set columns shown in this day's sheet. */
+    setCount: smallint("set_count").notNull().default(4),
     position: integer("position").notNull().default(0),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -288,12 +294,18 @@ export const workoutSets = pgTable(
     exerciseId: uuid("exercise_id")
       .notNull()
       .references(() => workoutExercises.id, { onDelete: "cascade" }),
+    /** 0-based week of the plan's cycle these targets belong to. */
+    week: smallint("week").notNull().default(0),
     setNumber: integer("set_number").notNull(),
     targetReps: integer("target_reps").notNull(),
     /** Stored canonically in kilograms. */
     targetWeightKg: num("target_weight_kg", 6, 2),
   },
-  (t) => [index("workout_sets_exercise_idx").on(t.exerciseId), check("workout_sets_reps_chk", sql`${t.targetReps} >= 0 AND ${t.targetReps} <= 1000`)],
+  (t) => [
+    index("workout_sets_exercise_idx").on(t.exerciseId, t.week),
+    check("workout_sets_reps_chk", sql`${t.targetReps} >= 0 AND ${t.targetReps} <= 1000`),
+    check("workout_sets_week_chk", sql`${t.week} BETWEEN 0 AND 11`),
+  ],
 );
 
 /* ───────────────────────────── workout history (immutable snapshots) ───────────────────────────── */
@@ -315,6 +327,9 @@ export const workoutLogs = pgTable(
     title: varchar("title", { length: 80 }).notNull(),
     muscleGroup: varchar("muscle_group", { length: 80 }),
     instructions: text("instructions"),
+    /** Which week of the plan's cycle this session used (null for sessions before multi-week sheets). */
+    weekIndex: smallint("week_index"),
+    weekCount: smallint("week_count"),
     status: workoutLogStatus("status").notNull().default("pending"),
     startedAt: timestamp("started_at", { withTimezone: true }),
     completedAt: timestamp("completed_at", { withTimezone: true }),

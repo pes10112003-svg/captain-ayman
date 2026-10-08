@@ -17,7 +17,8 @@ import * as s from "@/server/db/schema";
 import { hashPassword } from "@/server/auth/password";
 import { storage } from "@/server/storage";
 import { generateClientCode } from "@/server/services/clients";
-import { addDays, dayOfWeek, diffDays, todayInTz, zonedParts } from "@/lib/time";
+import { addDays, dayOfWeek, diffDays, startOfWeek, todayInTz, zonedParts } from "@/lib/time";
+import { planWeek } from "@/server/services/workouts";
 import { bmi } from "@/lib/units";
 import { FIXED_COACH_SETTINGS } from "@/lib/validation";
 import { encrypt } from "@/server/crypto";
@@ -585,7 +586,10 @@ async function main() {
       createdAt: localToUtc(joined, 10 * 60),
     });
 
-    /* workout plan (current targets) */
+    /* workout plan (current targets): a 3-week training sheet that started last week (so this is week 2) */
+    const WEEKS = 3;
+    const planStart = addDays(startOfWeek(today, 6), -7);
+    const kgFor = (e: Ex, wk: number) => (e.kg == null ? null : Math.round((e.kg + wk * (e.kg >= 40 ? 2.5 : e.kg >= 15 ? 1 : 0.5)) * 2) / 2);
     const uniq = [...new Set(schedule.filter(Boolean))] as WorkoutT[];
     let workoutPlanId: string | null = null;
     const workoutIds = new Map<WorkoutT, string>();
@@ -597,6 +601,8 @@ async function main() {
           clientId,
           name: uniq.length === 2 ? "Upper / Lower split" : uniq.length >= 3 ? "Push · Pull · Legs" : "Full-body program",
           notes: "Add 2.5 kg when every set hits the target reps.",
+          weekCount: WEEKS,
+          startsOn: planStart,
           contentUpdatedAt: localToUtc(addDays(today, -3), 21 * 60),
         })
         .returning();
@@ -626,12 +632,15 @@ async function main() {
             position: i,
           });
           await db.insert(s.workoutSets).values(
-            Array.from({ length: e.sets }, (_, k) => ({
-              exerciseId: eid,
-              setNumber: k + 1,
-              targetReps: e.reps,
-              targetWeightKg: e.kg,
-            })),
+            Array.from({ length: WEEKS }, (_, wk) =>
+              Array.from({ length: e.sets }, (_, k) => ({
+                exerciseId: eid,
+                week: wk,
+                setNumber: k + 1,
+                targetReps: e.reps,
+                targetWeightKg: kgFor(e, wk),
+              })),
+            ).flat(),
           );
         }
       }
@@ -731,6 +740,9 @@ async function main() {
           // Today, not started yet: the app will snapshot it on first view.
         } else {
           const logId = randomUUID();
+          // Sessions inside the current sheet cycle use that week's targets; older ones keep lighter historical targets.
+          const inCycle = date >= planStart;
+          const wk = inCycle ? planWeek(WEEKS, planStart, date).index : null;
           const finishMin = isToday ? nowMinutes - int(15, 60) : int(17 * 60 + 30, 21 * 60);
           const completedAt = done ? localToUtc(date, finishMin) : null;
           const startedAt = done || partialDay ? localToUtc(date, finishMin - int(50, 75)) : null;
@@ -777,7 +789,7 @@ async function main() {
                 exerciseLogId: exId,
                 setNumber: k,
                 targetReps: e.reps,
-                targetWeightKg: e.kg == null ? null : Math.round(e.kg * factor * 2) / 2,
+                targetWeightKg: wk != null ? kgFor(e, wk) : e.kg == null ? null : Math.round(e.kg * factor * 2) / 2,
                 actualReps: actual,
                 status,
                 completedAt: recorded && startedAt ? new Date(startedAt.getTime() + setIndex * 2.5 * 60_000) : null,
@@ -794,6 +806,8 @@ async function main() {
             title: w.title,
             muscleGroup: w.muscle,
             instructions: w.instructions ?? null,
+            weekIndex: wk,
+            weekCount: wk != null ? WEEKS : null,
             status: done ? "completed" : partialDay ? "in_progress" : "pending",
             startedAt,
             completedAt,

@@ -8,7 +8,7 @@ import { StatCard } from "@/components/ui/stat";
 import { Avatar } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Segmented } from "@/components/ui/link-tabs";
-import { DailyBars } from "@/components/charts/charts";
+import { DailyBars } from "@/components/charts/lazy";
 import { getI18n } from "@/i18n/server";
 import { cn, pct } from "@/lib/utils";
 

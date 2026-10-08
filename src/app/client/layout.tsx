@@ -5,6 +5,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Logo } from "@/components/shared/logo";
 import { LanguageIconButton, ThemeIconButton } from "@/components/shared/preferences";
 import { ClientBottomNav, ClientTopNav } from "@/components/client/client-nav";
+import { ContentProtection } from "@/components/client/content-protection";
 import { getI18n } from "@/i18n/server";
 
 export default async function ClientAreaLayout({ children }: { children: React.ReactNode }) {
@@ -13,7 +14,8 @@ export default async function ClientAreaLayout({ children }: { children: React.R
   const [{ client, permissions }, { t }] = await Promise.all([getClientProfile(actor, actor.clientId), getI18n()]);
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-30 border-b border-line/70 bg-page/85 backdrop-blur-xl">
+      <ContentProtection />
+      <header className="sticky top-0 z-30 border-b border-line/70 bg-page md:bg-page/85 md:backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-3 px-4 md:h-16">
           <Link href="/client" className="flex min-w-0 items-center gap-2">
             <Logo size="sm" />

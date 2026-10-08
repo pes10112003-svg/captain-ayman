@@ -45,12 +45,13 @@ export function MealList({
   const router = useRouter();
   const { t, f, fmt } = useI18n();
   const [meals, setMeals] = useState(initial);
-  const [busy, setBusy] = useState<string | null>(null);
+  // Per-meal "saving" flags: one slow save never blocks ticking another meal.
+  const [busy, setBusy] = useState<Record<string, boolean>>({});
   const firstPending = meals.find((m) => m.status === "pending")?.id;
 
   const setConsumed = async (m: ClientMeal, consumed: boolean) => {
-    if (!canComplete || busy) return;
-    setBusy(m.id);
+    if (!canComplete || busy[m.id]) return;
+    setBusy((b) => ({ ...b, [m.id]: true }));
     // Optimistic: show as eaten immediately; the authoritative time comes back from the server.
     setMeals((all) =>
       all.map((x) =>
@@ -64,8 +65,20 @@ export function MealList({
       ),
     );
     if (consumed && "vibrate" in navigator) navigator.vibrate?.(12);
-    const res = await setMealConsumedAction(m.id, consumed);
-    setBusy(null);
+    let res: Awaited<ReturnType<typeof setMealConsumedAction>> | null = null;
+    for (let attempt = 0; attempt < 3 && !res; attempt++) {
+      try {
+        res = await setMealConsumedAction(m.id, consumed);
+      } catch {
+        if (attempt < 2) await new Promise((r) => setTimeout(r, 700 * (attempt + 1)));
+      }
+    }
+    setBusy((b) => ({ ...b, [m.id]: false }));
+    if (!res) {
+      setMeals((all) => all.map((x) => (x.id === m.id ? m : x)));
+      toast.error(t.errors.offlineText);
+      return;
+    }
     if (!res.ok) {
       setMeals((all) => all.map((x) => (x.id === m.id ? m : x)));
       toast.error(res.error);
@@ -155,10 +168,10 @@ export function MealList({
                   <button
                     type="button"
                     onClick={() => setConsumed(m, false)}
-                    disabled={!!busy}
+                    disabled={!!busy[m.id]}
                     className="inline-flex items-center gap-1 text-xs font-medium text-good-text/80 hover:text-good-text"
                   >
-                    {busy === m.id ? <Loader2 className="size-3.5 animate-spin" /> : <Undo2 className="rtl-flip size-3.5" />} {t.meals.undo}
+                    {busy[m.id] ? <Loader2 className="size-3.5 animate-spin" /> : <Undo2 className="rtl-flip size-3.5" />} {t.meals.undo}
                   </button>
                 ) : null}
               </div>
@@ -167,13 +180,13 @@ export function MealList({
                 <button
                   type="button"
                   onClick={() => setConsumed(m, true)}
-                  disabled={!!busy}
+                  disabled={!!busy[m.id]}
                   className={cn(
                     "flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-semibold transition active:scale-[0.98] disabled:opacity-60",
                     isNext ? "bg-primary text-primary-fg" : "bg-surface-2 text-ink hover:bg-surface-3",
                   )}
                 >
-                  {busy === m.id ? <Loader2 className="size-5 animate-spin" /> : <Check className="size-5" strokeWidth={3} />}
+                  {busy[m.id] ? <Loader2 className="size-5 animate-spin" /> : <Check className="size-5" strokeWidth={3} />}
                   {t.meals.markEaten}
                 </button>
               </div>

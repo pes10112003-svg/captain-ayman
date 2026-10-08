@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Check, CheckCircle2, ExternalLink, Info, Loader2, Lock, Minus, PartyPopper, Plus, Timer } from "lucide-react";
+import { Check, CheckCircle2, ExternalLink, Info, Lock, Minus, PartyPopper, Plus, Timer } from "lucide-react";
 import { completeWorkoutAction, recordSetAction } from "@/server/actions/workouts";
 import { celebrate } from "@/lib/celebrate";
 import { Button } from "@/components/ui/button";
@@ -78,43 +78,72 @@ export function WorkoutSession({
   const recorded = all.filter((s) => s.status !== "pending").length;
   const remaining = all.length - recorded;
 
+  // Last state the server confirmed for each set (used to roll back if saving keeps failing).
+  const confirmed = useRef<Record<string, LocalSet>>({});
+  const inflight = useRef<Record<string, boolean>>({});
+  const queued = useRef<Record<string, { done: boolean; reps: number } | undefined>>({});
+
+  /** Calls the server; retries a couple of times on network hiccups (slow mobile data, sleeping server). */
+  async function send(id: string, next: { done: boolean; reps: number }) {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await recordSetAction(id, { done: next.done, actualReps: next.done ? next.reps : null });
+      } catch (err) {
+        if (attempt >= 2) throw err;
+        await new Promise((r) => setTimeout(r, 700 * (attempt + 1)));
+      }
+    }
+  }
+
+  /**
+   * Optimistic: the tick shows instantly and the save runs in the background. Taps made while a
+   * save is in flight are queued (only the latest one is sent), so nothing ever waits on the server.
+   */
   async function persist(id: string, next: { done: boolean; reps: number }) {
-    const prev = sets[id]!;
-    const status: SetStatus = !next.done ? "pending" : next.reps === 0 ? "skipped" : next.reps >= prev.targetReps ? "completed" : "partial";
-    setSets((s) => ({
-      ...s,
-      [id]: {
-        ...s[id]!,
-        status,
-        actualReps: next.done ? next.reps : null,
-        draftReps: next.reps,
-        saving: true,
-      },
-    }));
+    const base = sets[id]!;
+    confirmed.current[id] ??= { ...base, saving: false };
+    const status: SetStatus = !next.done ? "pending" : next.reps === 0 ? "skipped" : next.reps >= base.targetReps ? "completed" : "partial";
+    setSets((s) => ({ ...s, [id]: { ...s[id]!, status, actualReps: next.done ? next.reps : null, draftReps: next.reps, saving: true } }));
     if (next.done && typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate?.(12);
-    const res = await recordSetAction(id, {
-      done: next.done,
-      actualReps: next.done ? next.reps : null,
-    });
-    if (!res.ok) {
-      setSets((s) => ({ ...s, [id]: { ...prev, saving: false } }));
-      toast.error(res.error);
-      if (res.code === "not_found" || res.code === "conflict") router.refresh();
+    if (inflight.current[id]) {
+      queued.current[id] = next;
       return;
     }
-    setSets((s) => ({
-      ...s,
-      [id]: {
-        ...s[id]!,
-        status: res.data.set.status,
-        actualReps: res.data.set.actualReps,
-        saving: false,
-      },
-    }));
+    inflight.current[id] = true;
+    let payload: { done: boolean; reps: number } | undefined = next;
+    try {
+      while (payload) {
+        queued.current[id] = undefined;
+        const res = await send(id, payload);
+        if (!res.ok) {
+          queued.current[id] = undefined;
+          setSets((s) => ({ ...s, [id]: { ...confirmed.current[id]!, saving: false } }));
+          toast.error(res.error);
+          if (res.code === "not_found" || res.code === "conflict") router.refresh();
+          return;
+        }
+        confirmed.current[id] = {
+          ...confirmed.current[id]!,
+          status: res.data.set.status,
+          actualReps: res.data.set.actualReps,
+          draftReps: payload.reps,
+          saving: false,
+        };
+        payload = queued.current[id];
+        if (!payload) {
+          setSets((s) => ({ ...s, [id]: { ...s[id]!, status: res.data.set.status, actualReps: res.data.set.actualReps, saving: false } }));
+        }
+      }
+    } catch {
+      setSets((s) => ({ ...s, [id]: { ...confirmed.current[id]!, saving: false } }));
+      toast.error(t.errors.offlineText);
+    } finally {
+      inflight.current[id] = false;
+    }
   }
 
   const toggle = (s: LocalSet) => {
-    if (readOnly || s.saving) return;
+    if (readOnly) return;
     void persist(s.id, {
       done: s.status === "pending",
       reps: canEnterReps ? s.draftReps : s.targetReps,
@@ -146,7 +175,7 @@ export function WorkoutSession({
 
   return (
     <div className="space-y-4">
-      <div className="sticky top-14 z-20 -mx-4 border-b border-line/70 bg-page/90 px-4 py-3 backdrop-blur-xl md:top-16">
+      <div className="sticky top-14 z-20 -mx-4 border-b border-line/70 bg-page px-4 py-3 md:top-16 md:bg-page/90 md:backdrop-blur-xl">
         <div className="flex items-center justify-between text-sm">
           <span className="font-medium">
             {f(t.session.sets, {
@@ -305,7 +334,7 @@ export function WorkoutSession({
                           aria-pressed={isDone}
                           aria-label={isDone ? f(t.session.doneUndo, { n: s.setNumber }) : f(t.session.markDone, { n: s.setNumber })}
                           className={cn(
-                            "grid size-12 shrink-0 place-items-center rounded-2xl border-2 transition active:scale-90",
+                            "relative grid size-12 shrink-0 place-items-center rounded-2xl border-2 transition active:scale-90",
                             isDone
                               ? partial
                                 ? "border-warn bg-warn text-black"
@@ -314,7 +343,10 @@ export function WorkoutSession({
                             readOnly && "cursor-default active:scale-100",
                           )}
                         >
-                          {s.saving ? <Loader2 className="size-5 animate-spin" /> : <Check className={cn("size-6", isDone && "animate-pop")} strokeWidth={3} />}
+                          <Check className={cn("size-6", isDone && "animate-pop")} strokeWidth={3} />
+                          {s.saving ? (
+                            <span className="absolute -end-1 -top-1 size-2.5 animate-pulse rounded-full bg-brand ring-2 ring-surface" aria-hidden />
+                          ) : null}
                         </button>
                       </div>
                     </li>

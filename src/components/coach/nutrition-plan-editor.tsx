@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useMemo, useState, useTransition } from "react";
+import { memo, useCallback, useEffect, useId, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -129,17 +129,23 @@ export function NutritionPlanEditor({ clientId, initial }: { clientId: string; i
   const defaultName = ne.defaultPlanName;
   const router = useRouter();
   const initialJson = useMemo(() => JSON.stringify(toDraft(initial, defaultName)), [initial, defaultName]);
-  const [baseline, setBaseline] = useState(initialJson);
-  const [plan, setPlan] = useState<PlanDraft>(() => JSON.parse(initialJson));
+  const [baseline, setBaseline] = useState<PlanDraft>(() => JSON.parse(initialJson));
+  const [plan, setPlanRaw] = useState<PlanDraft>(() => JSON.parse(initialJson));
+  // A flag instead of comparing the whole plan as JSON on every keystroke (that made typing laggy on phones).
+  const [dirty, setDirty] = useState(false);
   const [saving, start] = useTransition();
-  const dirty = useMemo(() => JSON.stringify(plan) !== baseline, [plan, baseline]);
+  const setPlan = useCallback((next: PlanDraft | ((p: PlanDraft) => PlanDraft)) => {
+    setPlanRaw(next);
+    setDirty(true);
+  }, []);
 
   const [seen, setSeen] = useState(initialJson);
   if (seen !== initialJson) {
     setSeen(initialJson);
     if (!dirty || saving) {
-      setPlan(JSON.parse(initialJson));
-      setBaseline(initialJson);
+      setPlanRaw(JSON.parse(initialJson));
+      setBaseline(JSON.parse(initialJson));
+      setDirty(false);
     }
   }
 
@@ -153,11 +159,30 @@ export function NutritionPlanEditor({ clientId, initial }: { clientId: string; i
   const day = totals(plan.meals.flatMap((m) => m.items));
   // Calories & macros are optional — the daily totals only show once at least one value is entered.
   const hasDayMacros = day.calories + day.protein + day.carbs + day.fats > 0;
-  const setMeal = (key: string, patch: Partial<MealDraft>) =>
-    setPlan((p) => ({
-      ...p,
-      meals: p.meals.map((m) => (m.key === key ? { ...m, ...patch } : m)),
-    }));
+  const setMeal = useCallback(
+    (key: string, patch: Partial<MealDraft>) =>
+      setPlan((p) => ({
+        ...p,
+        meals: p.meals.map((m) => (m.key === key ? { ...m, ...patch } : m)),
+      })),
+    [setPlan],
+  );
+  const copySuffix = t.workoutEditor.copySuffix;
+  const duplicateMeal = useCallback(
+    (key: string) =>
+      setPlan((p) => {
+        const i = p.meals.findIndex((x) => x.key === key);
+        if (i < 0) return p;
+        const m = p.meals[i]!;
+        const copy = { ...m, id: null, key: uid(), name: `${m.name}${copySuffix}`.slice(0, 80), items: m.items.map((it) => ({ ...it, key: uid() })) };
+        return { ...p, meals: [...p.meals.slice(0, i + 1), copy, ...p.meals.slice(i + 1)] };
+      }),
+    [setPlan, copySuffix],
+  );
+  const replaceMeal = useCallback((key: string) => setMeal(key, { notes: "", referenceUrl: "", items: [newItem()] }), [setMeal]);
+  const removeMeal = useCallback((key: string) => setPlan((p) => ({ ...p, meals: p.meals.filter((x) => x.key !== key) })), [setPlan]);
+  const mealKeys = plan.meals.map((m) => m.key).join("|");
+  const sortableItems = useMemo(() => (mealKeys ? mealKeys.split("|") : []), [mealKeys]);
 
   const addMeal = () => {
     const used = new Set(plan.meals.map((m) => m.name));
@@ -238,7 +263,8 @@ export function NutritionPlanEditor({ clientId, initial }: { clientId: string; i
       const res = await saveNutritionPlanAction(clientId, payload);
       if (!res.ok) return void toast.error(res.error);
       toast.success(ne.saved);
-      setBaseline(JSON.stringify(plan));
+      setBaseline(plan);
+      setDirty(false);
       router.refresh();
     });
   };
@@ -296,45 +322,10 @@ export function NutritionPlanEditor({ clientId, initial }: { clientId: string; i
             </Button>
           </div>
           <DndContext id={dndId} sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-            <SortableContext items={plan.meals.map((m) => m.key)} strategy={verticalListSortingStrategy}>
+            <SortableContext items={sortableItems} strategy={verticalListSortingStrategy}>
               <ol className="space-y-3">
                 {plan.meals.map((m, i) => (
-                  <SortableMeal
-                    key={m.key}
-                    meal={m}
-                    index={i}
-                    onChange={(patch) => setMeal(m.key, patch)}
-                    onDuplicate={() =>
-                      setPlan((p) => ({
-                        ...p,
-                        meals: [
-                          ...p.meals.slice(0, i + 1),
-                          {
-                            ...m,
-                            id: null,
-                            key: uid(),
-                            name: `${m.name}${t.workoutEditor.copySuffix}`.slice(0, 80),
-                            items: m.items.map((it) => ({ ...it, key: uid() })),
-                          },
-                          ...p.meals.slice(i + 1),
-                        ],
-                      }))
-                    }
-                    onReplace={() =>
-                      setMeal(m.key, {
-                        name: m.name,
-                        notes: "",
-                        referenceUrl: "",
-                        items: [newItem()],
-                      })
-                    }
-                    onRemove={() =>
-                      setPlan((p) => ({
-                        ...p,
-                        meals: p.meals.filter((x) => x.key !== m.key),
-                      }))
-                    }
-                  />
+                  <SortableMeal key={m.key} meal={m} index={i} onChange={setMeal} onDuplicate={duplicateMeal} onReplace={replaceMeal} onRemove={removeMeal} />
                 ))}
               </ol>
             </SortableContext>
@@ -358,7 +349,7 @@ export function NutritionPlanEditor({ clientId, initial }: { clientId: string; i
 
       <div
         className={cn(
-          "fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 px-4 py-3 backdrop-blur-xl transition-[transform,visibility] duration-200 safe-bottom lg:start-64",
+          "fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface px-4 py-3 transition-[transform,visibility] duration-200 safe-bottom lg:start-64",
           dirty || saving ? "visible translate-y-0" : "invisible translate-y-full",
         )}
       >
@@ -368,7 +359,14 @@ export function NutritionPlanEditor({ clientId, initial }: { clientId: string; i
             {t.common.unsavedChanges}
           </p>
           <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => setPlan(JSON.parse(baseline))} disabled={saving}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setPlanRaw(baseline);
+                setDirty(false);
+              }}
+              disabled={saving}
+            >
               <RotateCcw /> {t.common.discard}
             </Button>
             <Button onClick={save} loading={saving}>
@@ -381,21 +379,25 @@ export function NutritionPlanEditor({ clientId, initial }: { clientId: string; i
   );
 }
 
-function SortableMeal({
+const SortableMeal = memo(function SortableMeal({
   meal: m,
   index,
-  onChange,
-  onDuplicate,
-  onReplace,
-  onRemove,
+  onChange: onChangeByKey,
+  onDuplicate: onDuplicateByKey,
+  onReplace: onReplaceByKey,
+  onRemove: onRemoveByKey,
 }: {
   meal: MealDraft;
   index: number;
-  onChange: (patch: Partial<MealDraft>) => void;
-  onDuplicate: () => void;
-  onReplace: () => void;
-  onRemove: () => void;
+  onChange: (key: string, patch: Partial<MealDraft>) => void;
+  onDuplicate: (key: string) => void;
+  onReplace: (key: string) => void;
+  onRemove: (key: string) => void;
 }) {
+  const onChange = (patch: Partial<MealDraft>) => onChangeByKey(m.key, patch);
+  const onDuplicate = () => onDuplicateByKey(m.key);
+  const onReplace = () => onReplaceByKey(m.key);
+  const onRemove = () => onRemoveByKey(m.key);
   const { t, f, fmt } = useI18n();
   const ne = t.nutritionEditor;
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: m.key });
@@ -613,4 +615,4 @@ function SortableMeal({
       )}
     </li>
   );
-}
+});

@@ -23,7 +23,7 @@ export function ClientBottomNav({ permissions }: { permissions: Perms }) {
   const pathname = usePathname();
   const { t } = useI18n();
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/90 backdrop-blur-xl safe-bottom md:hidden" aria-label={t.nav.main}>
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface safe-bottom md:hidden" aria-label={t.nav.main}>
       <ul className="mx-auto flex max-w-lg justify-around px-2">
         {items(permissions, t).map(({ href, label, icon: Icon, exact }) => {
           const active = exact ? pathname === href : pathname.startsWith(href);
@@ -56,7 +56,10 @@ export function ClientTopNav({ permissions }: { permissions: Perms }) {
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={cn("flex h-9 items-center gap-2 rounded-xl px-3 text-sm font-medium transition", active ? "bg-primary text-primary-fg" : "text-ink-2 hover:bg-surface-2")}
+                className={cn(
+                  "flex h-9 items-center gap-2 rounded-xl px-3 text-sm font-medium transition",
+                  active ? "bg-primary text-primary-fg" : "text-ink-2 hover:bg-surface-2",
+                )}
               >
                 <Icon className="size-4" aria-hidden />
                 {label}

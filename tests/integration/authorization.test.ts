@@ -241,6 +241,7 @@ describe("9–10 · plan edits never rewrite history", () => {
     await saveWorkoutPlan(coach, A.id, {
       name: "Empty",
       notes: null,
+      weekCount: 1,
       workouts: [],
       schedule: Array(7).fill(null),
     });
@@ -464,5 +465,49 @@ describe("14 · site access code", () => {
     const s3 = await getGateState(true);
     expect(s3.enabled).toBe(false);
     expect(s3.version).not.toBe(s2.version);
+  });
+});
+
+describe("15 · multi-week training sheets", () => {
+  async function saveSheet(startOffsetDays: number) {
+    const { today: coachDay } = await getWorkoutPlanForEditor(coach, A.id);
+    const plan = pushPlan(10);
+    plan.weekCount = 3;
+    plan.startsOn = addDays(coachDay, startOffsetDays);
+    plan.workouts[0]!.exercises[0]!.sets = [0, 1, 2].flatMap((week) =>
+      [1, 2].map((setNumber) => ({ week, setNumber, targetReps: 10 + week, targetWeight: 40 + week * 2.5 })),
+    );
+    await saveWorkoutPlan(coach, A.id, plan);
+  }
+
+  it("the client gets this week's targets, and the coach sees what they did in the same sheet", async () => {
+    await saveSheet(-7); // started last week → this is week 2
+    const { log } = await getTodayWorkout(A.actor);
+    expect(log!.weekIndex).toBe(1);
+    expect(log!.weekCount).toBe(3);
+    const sets = log!.exercises[0]!.sets;
+    expect(sets.map((x) => [x.targetReps, x.targetWeightKg])).toEqual([
+      [11, 42.5],
+      [11, 42.5],
+    ]);
+
+    await recordSet(A.actor, sets[0]!.id, { done: true });
+    await recordSet(A.actor, sets[1]!.id, { done: true, actualReps: 8 });
+    const editor = await getWorkoutPlanForEditor(coach, A.id);
+    expect(editor.plan!.currentWeek).toBe(1);
+    const r = editor.results.find((x) => x.week === 1)!;
+    expect(r.exercises[0]!.sets.map((x) => [x.setNumber, x.status, x.actualReps])).toEqual([
+      [1, "completed", 11],
+      [2, "partial", 8],
+    ]);
+  });
+
+  it("after the last week the client stays on the last week and the coach is told", async () => {
+    await saveSheet(-35); // five weeks ago, 3-week cycle
+    const { log } = await getTodayWorkout(A.actor);
+    expect(log!.weekIndex).toBe(2);
+    expect(log!.exercises[0]!.sets[0]!.targetReps).toBe(12);
+    const editor = await getWorkoutPlanForEditor(coach, A.id);
+    expect(editor.plan!.cycleFinished).toBe(true);
   });
 });

@@ -15,12 +15,13 @@ export async function generateMetadata() {
 
 export default async function ClientWorkoutPage() {
   const actor = await requireClientPage();
-  const { t, fmt, locale } = await getI18n();
+  const { t, f, fmt, locale } = await getI18n();
   let data;
   try {
     data = await getTodayWorkout(actor);
   } catch (err) {
-    if (err instanceof ForbiddenError) return <EmptyState icon={<Lock />} title={t.session.turnedOff} description={translateServerMessage(err.message, locale)} />;
+    if (err instanceof ForbiddenError)
+      return <EmptyState icon={<Lock />} title={t.session.turnedOff} description={translateServerMessage(err.message, locale)} />;
     throw err;
   }
   const { log, prefs, permissions, week } = data;
@@ -29,7 +30,14 @@ export default async function ClientWorkoutPage() {
     <div className="space-y-5">
       <div>
         <p className="text-sm text-muted">{fmt.dateLong(data.today)}</p>
-        <h1 className="mt-0.5 text-[26px] font-semibold tracking-tight">{log ? log.title : t.titles.todaysWorkout}</h1>
+        <h1 className="mt-0.5 flex flex-wrap items-center gap-2 text-[26px] font-semibold tracking-tight">
+          {log ? log.title : t.titles.todaysWorkout}
+          {log?.weekCount && log.weekCount > 1 && log.weekIndex != null ? (
+            <span className="rounded-full bg-brand px-2.5 py-0.5 text-xs font-bold tracking-normal text-brand-ink">
+              {f(t.sheet.clientWeek, { n: log.weekIndex + 1, total: log.weekCount })}
+            </span>
+          ) : null}
+        </h1>
         {log?.muscleGroup ? <p className="text-sm text-muted">{log.muscleGroup}</p> : null}
       </div>
       <WeekStrip days={week} />
@@ -38,7 +46,9 @@ export default async function ClientWorkoutPage() {
           {log.instructions ? (
             <div className="rounded-2xl border border-line bg-surface p-4 text-sm leading-relaxed text-ink-2">
               <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">{t.session.fromCoach}</p>
-              <p dir="auto" className="text-start">{log.instructions}</p>
+              <p dir="auto" className="text-start">
+                {log.instructions}
+              </p>
             </div>
           ) : null}
           <WorkoutSession

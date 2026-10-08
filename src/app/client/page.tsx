@@ -4,7 +4,7 @@ import { requireClientPage } from "@/server/auth/guards";
 import { getClientHome } from "@/server/services/client-home";
 import { Card } from "@/components/ui/card";
 import { ProgressBar, ProgressRing } from "@/components/ui/progress";
-import { Sparkline } from "@/components/charts/charts";
+import { Sparkline } from "@/components/charts/sparkline";
 import { WeekStrip } from "@/components/client/week-strip";
 import { clockToMinutes, minutesOfDayInTz } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -44,9 +44,18 @@ export default async function ClientHomePage() {
             )}
           >
             {w && w.status !== "completed" ? (
-              <div className="pointer-events-none absolute -end-16 -top-16 size-56 rounded-full opacity-25 blur-2xl" style={{ background: "radial-gradient(circle, #C4F042, transparent 65%)" }} aria-hidden />
+              <div
+                className="pointer-events-none absolute -end-16 -top-16 size-56 rounded-full opacity-25 blur-2xl"
+                style={{ background: "radial-gradient(circle, #C4F042, transparent 65%)" }}
+                aria-hidden
+              />
             ) : null}
-            <p className={cn("flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em]", w && w.status !== "completed" ? "text-[#C4F042]" : "text-muted")}>
+            <p
+              className={cn(
+                "flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em]",
+                w && w.status !== "completed" ? "text-[#C4F042]" : "text-muted",
+              )}
+            >
               <Dumbbell className="size-4" /> {t.clientHome.todaysWorkout}
             </p>
             {w ? (
@@ -58,7 +67,10 @@ export default async function ClientHomePage() {
                     {w.status === "completed" ? (
                       <span className="inline-flex items-center gap-1.5 text-good-text">
                         <CheckCircle2 className="size-4" />{" "}
-                        {f(t.clientHome.completedAt, { time: w.completedAt ? fmt.time(w.completedAt, tz) : "", pct: fmt.num(Math.round(w.completionPercent), 0) })}
+                        {f(t.clientHome.completedAt, {
+                          time: w.completedAt ? fmt.time(w.completedAt, tz) : "",
+                          pct: fmt.num(Math.round(w.completionPercent), 0),
+                        })}
                       </span>
                     ) : (
                       f(t.clientHome.exercisesDone, { done: fmt.num(w.exercisesDone, 0), total: fmt.num(w.exercisesTotal, 0) })
@@ -133,7 +145,8 @@ export default async function ClientHomePage() {
                 </ul>
                 {nextMeal ? (
                   <p className="mt-4 rounded-xl bg-surface-2 px-3 py-2.5 text-sm">
-                    {t.clientHome.nextUp} <span className="font-semibold">{nextMeal.mealName}</span> {f(t.clientHome.at, { time: fmt.clock(nextMeal.scheduledTime) })}
+                    {t.clientHome.nextUp} <span className="font-semibold">{nextMeal.mealName}</span>{" "}
+                    {f(t.clientHome.at, { time: fmt.clock(nextMeal.scheduledTime) })}
                   </p>
                 ) : (
                   <p className="mt-4 rounded-xl bg-good-soft px-3 py-2.5 text-sm font-medium text-good-text">{t.clientHome.allDone}</p>

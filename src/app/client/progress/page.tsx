@@ -7,7 +7,7 @@ import { coachToday } from "@/server/services/settings";
 import { ForbiddenError } from "@/server/errors";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PercentLinesChart, TrendChart } from "@/components/charts/charts";
+import { PercentLinesChart, TrendChart } from "@/components/charts/lazy";
 import { BodyComposition } from "@/components/shared/body-composition";
 import { MeasurementTrend } from "@/components/shared/measurement-trend";
 import { MeasurementHistory } from "@/components/coach/measurement-history";

@@ -6,7 +6,7 @@ import { coachToday } from "@/server/services/settings";
 import { orNotFound } from "@/server/page-helpers";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PercentLinesChart, TrendChart } from "@/components/charts/charts";
+import { PercentLinesChart, TrendChart } from "@/components/charts/lazy";
 import { BodyComposition } from "@/components/shared/body-composition";
 import { MeasurementTrend } from "@/components/shared/measurement-trend";
 import { MeasurementDialog } from "@/components/coach/measurement-form";
@@ -61,7 +61,14 @@ export default async function ClientProgressPage({ params, searchParams }: { par
           />
           <CardBody>
             {weightSeries.length >= 2 ? (
-              <TrendChart data={weightSeries} unit={fmt.unit(prefs.weightUnit)} name={t.progress.weight} color="series-3" goal={goal} goalLabel={t.progress.goal} />
+              <TrendChart
+                data={weightSeries}
+                unit={fmt.unit(prefs.weightUnit)}
+                name={t.progress.weight}
+                color="series-3"
+                goal={goal}
+                goalLabel={t.progress.goal}
+              />
             ) : (
               <p className="py-16 text-center text-sm text-muted">{t.progress.addWeightHint}</p>
             )}

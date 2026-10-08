@@ -1,23 +1,15 @@
 import { randomUUID } from "node:crypto";
-import { and, asc, count, desc, eq, gte, inArray, lte, notInArray, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNotNull, lte, ne, notInArray, sql } from "drizzle-orm";
 import { db, type Executor, type Tx } from "../db";
-import {
-  workoutDays,
-  workoutExerciseLogs,
-  workoutExercises,
-  workoutLogs,
-  workoutPlans,
-  workoutSetLogs,
-  workoutSets,
-  workouts,
-} from "../db/schema";
+import { workoutDays, workoutExerciseLogs, workoutExercises, workoutLogs, workoutPlans, workoutSetLogs, workoutSets, workouts } from "../db/schema";
 import { assertCoach, authorizeClient, authorizeSelf } from "../authz";
 import { logActivity, touchClient } from "../activity";
 import { emit } from "../events";
 import { ConflictError, ForbiddenError, NotFoundError, isUniqueViolation } from "../errors";
 import type { Actor } from "../auth/types";
-import { coachToday, getCoachPrefs } from "./settings";
+import { coachToday } from "./settings";
 import { addDays, dayOfWeek, startOfWeek } from "@/lib/time";
+import { planWeek } from "@/lib/plan-week";
 import { kgTo, round, toKg, type WeightUnit } from "@/lib/units";
 import { isUuid } from "@/lib/utils";
 import type { WorkoutPlanInput } from "@/lib/validation";
@@ -34,7 +26,7 @@ export async function loadActiveWorkoutPlan(clientId: string, dbx: Executor = db
         with: {
           exercises: {
             orderBy: [asc(workoutExercises.position)],
-            with: { sets: { orderBy: [asc(workoutSets.setNumber)] } },
+            with: { sets: { orderBy: [asc(workoutSets.week), asc(workoutSets.setNumber)] } },
           },
         },
       },
@@ -43,20 +35,30 @@ export async function loadActiveWorkoutPlan(clientId: string, dbx: Executor = db
 }
 export type WorkoutPlanTree = NonNullable<Awaited<ReturnType<typeof loadActiveWorkoutPlan>>>;
 
+export { planWeek };
+
 /** Shape consumed by the coach's plan editor (weights converted to the coach's display unit). */
 export async function getWorkoutPlanForEditor(actor: Actor, clientId: string) {
   assertCoach(actor);
   const { client } = await authorizeClient(actor, clientId);
-  const prefs = await getCoachPrefs(actor.userId);
+  const { prefs, today } = await coachToday(actor.userId);
   const plan = await loadActiveWorkoutPlan(client.id);
   const toDisplay = (kg: number | null) => (kg == null ? null : round(kgTo(kg, prefs.weightUnit), 2));
+  const week = plan ? planWeek(plan.weekCount, plan.startsOn, today) : null;
   return {
     weightUnit: prefs.weightUnit,
+    today,
+    thisWeekStart: startOfWeek(today, prefs.weekStartsOn),
+    results: plan ? await getSheetResults(client.id, plan.id, plan.startsOn, today) : [],
     plan: plan
       ? {
           id: plan.id,
           name: plan.name,
           notes: plan.notes,
+          weekCount: plan.weekCount,
+          startsOn: plan.startsOn,
+          currentWeek: week!.index,
+          cycleFinished: week!.finished,
           updatedAt: plan.contentUpdatedAt.toISOString(),
           schedule: Array.from({ length: 7 }, (_, dow) => plan.days.find((d) => d.dayOfWeek === dow)?.workoutId ?? null),
           workouts: plan.workouts.map((w) => ({
@@ -65,6 +67,7 @@ export async function getWorkoutPlanForEditor(actor: Actor, clientId: string) {
             title: w.title,
             muscleGroup: w.muscleGroup,
             instructions: w.instructions,
+            setCount: w.setCount,
             exercises: w.exercises.map((e) => ({
               key: e.id,
               name: e.name,
@@ -72,12 +75,89 @@ export async function getWorkoutPlanForEditor(actor: Actor, clientId: string) {
               tempo: e.tempo,
               notes: e.notes,
               videoUrl: e.videoUrl,
-              sets: e.sets.map((s) => ({ key: s.id, targetReps: s.targetReps, targetWeight: toDisplay(s.targetWeightKg) })),
+              sets: e.sets.map((s) => ({
+                key: s.id,
+                week: s.week,
+                setNumber: s.setNumber,
+                targetReps: s.targetReps,
+                targetWeight: toDisplay(s.targetWeightKg),
+              })),
             })),
           })),
         }
       : null,
   };
+}
+
+export type SheetResult = {
+  workoutId: string;
+  week: number;
+  date: string;
+  exercises: {
+    name: string;
+    position: number;
+    sets: { setNumber: number; status: "pending" | "completed" | "partial" | "skipped"; actualReps: number | null; targetReps: number }[];
+  }[];
+};
+
+/**
+ * What the client actually did in each (day, week) of the current cycle — the latest session
+ * per cell — so the coach's sheet can colour targets green (done) or orange (fewer reps).
+ */
+async function getSheetResults(clientId: string, planId: string, startsOn: string | null, today: string): Promise<SheetResult[]> {
+  const logs = await db
+    .select({ id: workoutLogs.id, workoutId: workoutLogs.workoutId, week: workoutLogs.weekIndex, date: workoutLogs.date, status: workoutLogs.status })
+    .from(workoutLogs)
+    .where(
+      and(
+        eq(workoutLogs.clientId, clientId),
+        eq(workoutLogs.planId, planId),
+        isNotNull(workoutLogs.weekIndex),
+        isNotNull(workoutLogs.workoutId),
+        ne(workoutLogs.status, "pending"),
+        lte(workoutLogs.date, today),
+        ...(startsOn ? [gte(workoutLogs.date, startsOn)] : []),
+      ),
+    )
+    .orderBy(desc(workoutLogs.date));
+  const latest = new Map<string, (typeof logs)[number]>();
+  for (const l of logs) {
+    const k = `${l.workoutId}:${l.week}`;
+    if (!latest.has(k)) latest.set(k, l);
+  }
+  const picked = [...latest.values()];
+  if (!picked.length) return [];
+  const ids = picked.map((l) => l.id);
+  const [exLogs, setLogs] = await Promise.all([
+    db
+      .select({ id: workoutExerciseLogs.id, logId: workoutExerciseLogs.workoutLogId, name: workoutExerciseLogs.name, position: workoutExerciseLogs.position })
+      .from(workoutExerciseLogs)
+      .where(inArray(workoutExerciseLogs.workoutLogId, ids)),
+    db
+      .select({
+        exerciseLogId: workoutSetLogs.exerciseLogId,
+        setNumber: workoutSetLogs.setNumber,
+        status: workoutSetLogs.status,
+        actualReps: workoutSetLogs.actualReps,
+        targetReps: workoutSetLogs.targetReps,
+      })
+      .from(workoutSetLogs)
+      .where(inArray(workoutSetLogs.workoutLogId, ids)),
+  ]);
+  return picked.map((l) => ({
+    workoutId: l.workoutId!,
+    week: l.week!,
+    date: l.date,
+    exercises: exLogs
+      .filter((e) => e.logId === l.id)
+      .map((e) => ({
+        name: e.name,
+        position: e.position,
+        sets: setLogs
+          .filter((x) => x.exerciseLogId === e.id)
+          .map(({ setNumber, status, actualReps, targetReps }) => ({ setNumber, status, actualReps, targetReps })),
+      })),
+  }));
 }
 
 export async function saveWorkoutPlan(actor: Actor, clientId: string, input: WorkoutPlanInput) {
@@ -99,29 +179,42 @@ export async function saveWorkoutPlan(actor: Actor, clientId: string, input: Wor
       planId = existingPlan.id;
       await tx
         .update(workoutPlans)
-        .set({ name: input.name, notes: input.notes, contentUpdatedAt: sql`now()` })
+        .set({
+          name: input.name,
+          notes: input.notes,
+          weekCount: input.weekCount,
+          startsOn: input.startsOn ?? existingPlan.startsOn ?? startOfWeek(today, prefs.weekStartsOn),
+          contentUpdatedAt: sql`now()`,
+        })
         .where(eq(workoutPlans.id, planId));
     } else {
       const [created] = await tx
         .insert(workoutPlans)
-        .values({ clientId: client.id, name: input.name, notes: input.notes })
+        .values({
+          clientId: client.id,
+          name: input.name,
+          notes: input.notes,
+          weekCount: input.weekCount,
+          startsOn: input.startsOn ?? startOfWeek(today, prefs.weekStartsOn),
+        })
         .returning({ id: workoutPlans.id });
       planId = created!.id;
     }
 
     // Only ids that already belong to THIS plan may be updated — anything else is treated as new.
-    const existingIds = new Set(
-      (await tx.select({ id: workouts.id }).from(workouts).where(eq(workouts.planId, planId))).map((r) => r.id),
-    );
+    const existingIds = new Set((await tx.select({ id: workouts.id }).from(workouts).where(eq(workouts.planId, planId))).map((r) => r.id));
     const keyToId = new Map<string, string>();
     const keep: string[] = [];
 
     for (const [position, w] of input.workouts.entries()) {
-      const values = { title: w.title, muscleGroup: w.muscleGroup || null, instructions: w.instructions || null, position };
+      const values = { title: w.title, muscleGroup: w.muscleGroup || null, instructions: w.instructions || null, setCount: w.setCount, position };
       let id: string;
       if (w.id && isUuid(w.id) && existingIds.has(w.id)) {
         id = w.id;
-        await tx.update(workouts).set(values).where(and(eq(workouts.id, id), eq(workouts.planId, planId)));
+        await tx
+          .update(workouts)
+          .set(values)
+          .where(and(eq(workouts.id, id), eq(workouts.planId, planId)));
       } else {
         id = randomUUID();
         await tx.insert(workouts).values({ id, planId, ...values });
@@ -130,9 +223,7 @@ export async function saveWorkoutPlan(actor: Actor, clientId: string, input: Wor
       keep.push(id);
     }
 
-    await tx
-      .delete(workouts)
-      .where(keep.length ? and(eq(workouts.planId, planId), notInArray(workouts.id, keep)) : eq(workouts.planId, planId));
+    await tx.delete(workouts).where(keep.length ? and(eq(workouts.planId, planId), notInArray(workouts.id, keep)) : eq(workouts.planId, planId));
 
     if (keep.length) {
       await tx.delete(workoutExercises).where(inArray(workoutExercises.workoutId, keep));
@@ -152,14 +243,18 @@ export async function saveWorkoutPlan(actor: Actor, clientId: string, input: Wor
             videoUrl: e.videoUrl || null,
             position,
           });
-          e.sets.forEach((s, i) =>
+          const perWeek = new Map<number, number>();
+          for (const st of e.sets) {
+            const order = (perWeek.get(st.week) ?? 0) + 1;
+            perWeek.set(st.week, order);
             setRows.push({
               exerciseId: exId,
-              setNumber: i + 1,
-              targetReps: s.targetReps,
-              targetWeightKg: s.targetWeight == null ? null : round(toKg(s.targetWeight, unit), 2),
-            }),
-          );
+              week: st.week,
+              setNumber: st.setNumber ?? order,
+              targetReps: st.targetReps,
+              targetWeightKg: st.targetWeight == null ? null : round(toKg(st.targetWeight, unit), 2),
+            });
+          }
         });
       }
       if (exRows.length) await tx.insert(workoutExercises).values(exRows);
@@ -167,9 +262,7 @@ export async function saveWorkoutPlan(actor: Actor, clientId: string, input: Wor
     }
 
     await tx.delete(workoutDays).where(eq(workoutDays.planId, planId));
-    await tx.insert(workoutDays).values(
-      input.schedule.map((key, dow) => ({ planId, dayOfWeek: dow, workoutId: key ? (keyToId.get(key) ?? null) : null })),
-    );
+    await tx.insert(workoutDays).values(input.schedule.map((key, dow) => ({ planId, dayOfWeek: dow, workoutId: key ? (keyToId.get(key) ?? null) : null })));
 
     await logActivity(
       {
@@ -201,17 +294,14 @@ function resolveWorkoutForDate(plan: WorkoutPlanTree | undefined, date: string) 
   return plan.workouts.find((w) => w.id === slot.workoutId) ?? null;
 }
 
-async function insertWorkoutSnapshot(
-  tx: Tx,
-  clientId: string,
-  date: string,
-  plan: WorkoutPlanTree,
-  workout: WorkoutPlanTree["workouts"][number],
-) {
+async function insertWorkoutSnapshot(tx: Tx, clientId: string, date: string, plan: WorkoutPlanTree, workout: WorkoutPlanTree["workouts"][number]) {
   const logId = randomUUID();
+  const week = planWeek(plan.weekCount, plan.startsOn, date);
   const exRows: (typeof workoutExerciseLogs.$inferInsert)[] = [];
   const setRows: (typeof workoutSetLogs.$inferInsert)[] = [];
   for (const ex of workout.exercises) {
+    const sets = ex.sets.filter((st) => st.week === week.index);
+    if (!sets.length) continue; // nothing planned for this exercise this week
     const exId = randomUUID();
     exRows.push({
       id: exId,
@@ -224,7 +314,7 @@ async function insertWorkoutSnapshot(
       videoUrl: ex.videoUrl,
       position: ex.position,
     });
-    for (const s of ex.sets) {
+    for (const s of sets) {
       setRows.push({
         clientId,
         workoutLogId: logId,
@@ -244,6 +334,8 @@ async function insertWorkoutSnapshot(
     title: workout.title,
     muscleGroup: workout.muscleGroup,
     instructions: workout.instructions,
+    weekIndex: week.index,
+    weekCount: plan.weekCount,
     status: "pending",
     totalSets: setRows.length,
   });
@@ -268,7 +360,9 @@ export async function ensureWorkoutLogForDate(clientId: string, date: string): P
 
   if (existing && existing.status !== "pending") return existing.id;
 
-  if (!workout || workout.exercises.length === 0) {
+  const weekIdx = plan ? planWeek(plan.weekCount, plan.startsOn, date).index : 0;
+  const hasSets = !!workout?.exercises.some((e) => e.sets.some((st) => st.week === weekIdx));
+  if (!workout || !hasSets) {
     if (existing) {
       await db.delete(workoutLogs).where(and(eq(workoutLogs.id, existing.id), eq(workoutLogs.status, "pending")));
     }
@@ -325,10 +419,7 @@ export function computeCompletion(sets: SetLike[]) {
   const partial = sets.filter((s) => s.status === "partial").length;
   const recorded = sets.filter((s) => s.status !== "pending").length;
   const targetSum = sets.reduce((a, s) => a + s.targetReps, 0);
-  const doneSum = sets.reduce(
-    (a, s) => a + (s.status === "pending" ? 0 : Math.min(s.actualReps ?? s.targetReps, s.targetReps)),
-    0,
-  );
+  const doneSum = sets.reduce((a, s) => a + (s.status === "pending" ? 0 : Math.min(s.actualReps ?? s.targetReps, s.targetReps)), 0);
   const percent = targetSum > 0 ? (doneSum / targetSum) * 100 : total > 0 ? (completed / total) * 100 : 0;
   return { total, completed, partial, recorded, percent: Math.round(percent * 100) / 100 };
 }
@@ -428,11 +519,7 @@ export async function recordSet(actor: Actor, setLogId: string, input: { done: b
         actorId: actor.userId,
         clientId: scope.client.id,
         coachId: scope.client.coachId,
-        action: !input.done
-          ? "client.workout_set.reset"
-          : updated!.status === "completed"
-            ? "client.workout_set.completed"
-            : "client.workout_set.partial",
+        action: !input.done ? "client.workout_set.reset" : updated!.status === "completed" ? "client.workout_set.completed" : "client.workout_set.partial",
         entityType: "workout_set_log",
         entityId: row.set.id,
         metadata: { workout: row.log.title, set: row.set.setNumber, targetReps: row.set.targetReps, actualReps: updated!.actualReps },

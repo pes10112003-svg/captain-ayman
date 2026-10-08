@@ -9,7 +9,7 @@ import { ProgressBar, ProgressRing } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LinkButton } from "@/components/ui/button";
-import { PercentLinesChart, TrendChart } from "@/components/charts/charts";
+import { PercentLinesChart, TrendChart } from "@/components/charts/lazy";
 import { ActivityList } from "@/components/shared/activity-list";
 import { WorkoutStatusBadge } from "@/components/shared/status";
 import { ageFromDob, dayOfWeek } from "@/lib/time";

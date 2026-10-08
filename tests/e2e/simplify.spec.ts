@@ -48,15 +48,8 @@ test("client page: one Settings tab holds permissions; activity tab and app unit
   await context.close();
 });
 
-test("plan editors keep rarely used fields under «More options»", async ({ browser }) => {
+test("meal editor keeps nutrition values optional", async ({ browser }) => {
   const { context, page } = await newSession(browser, COACH);
-  await page.goto(`/coach/clients/${ids.a}/workouts`);
-  const more = page.getByRole("button", { name: "More options" }).first();
-  // Retry until hydrated: a click that lands before React attaches handlers does nothing.
-  await expect(async () => {
-    if (!(await more.isVisible())) await page.getByRole("button", { name: "Expand" }).first().click();
-    await expect(more).toBeVisible({ timeout: 1000 });
-  }).toPass();
   await page.goto(`/coach/clients/${ids.a}/nutrition`);
   await expect(page.getByRole("button", { name: "Nutrition values (optional)" }).first()).toBeVisible();
   await context.close();

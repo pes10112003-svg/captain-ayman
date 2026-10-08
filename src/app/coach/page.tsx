@@ -9,7 +9,7 @@ import { StatCard } from "@/components/ui/stat";
 import { ProgressBar } from "@/components/ui/progress";
 import { Avatar } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
-import { DailyBars } from "@/components/charts/charts";
+import { DailyBars } from "@/components/charts/lazy";
 import { ActivityList } from "@/components/shared/activity-list";
 import { WorkoutStatusBadge, NutritionStatusBadge } from "@/components/shared/status";
 import { angleLabel, goalLabel, measureTypeLabel } from "@/i18n/labels";
@@ -207,13 +207,7 @@ export default async function CoachDashboardPage() {
         <Card>
           <CardHeader title={t.dashboard.mealAdherence} description={t.dashboard.last14Meals} />
           <CardBody className="pt-3">
-            <DailyBars
-              data={d.series}
-              valueKey="mealAdherence"
-              name={t.dashboard.ofMealsEaten}
-              color="series-2"
-              percent
-            />
+            <DailyBars data={d.series} valueKey="mealAdherence" name={t.dashboard.ofMealsEaten} color="series-2" percent />
           </CardBody>
         </Card>
       </div>
@@ -293,12 +287,17 @@ export default async function CoachDashboardPage() {
                 const s = d.todayStatus.get(c.id);
                 return (
                   <li key={c.id}>
-                    <Link href={`/coach/clients/${c.id}`} className="flex h-full flex-col gap-2 rounded-xl border border-line p-3 transition hover:border-line-strong hover:bg-surface-2">
+                    <Link
+                      href={`/coach/clients/${c.id}`}
+                      className="flex h-full flex-col gap-2 rounded-xl border border-line p-3 transition hover:border-line-strong hover:bg-surface-2"
+                    >
                       <div className="flex items-center gap-2">
                         <Avatar name={c.fullName} clientId={c.id} avatarKey={c.avatarKey} size="xs" />
                         <span className="truncate text-[13px] font-medium">{c.fullName.split(" ")[0]}</span>
                       </div>
-                      <span className="text-[11px] text-muted">{c.lastActivityAt ? f(t.dashboard.activeAgo, { ago: fmt.timeAgo(c.lastActivityAt) }) : t.dashboard.noActivity}</span>
+                      <span className="text-[11px] text-muted">
+                        {c.lastActivityAt ? f(t.dashboard.activeAgo, { ago: fmt.timeAgo(c.lastActivityAt) }) : t.dashboard.noActivity}
+                      </span>
                       {s ? (
                         <div className="flex flex-wrap gap-1">
                           {s.workout !== "no_plan" ? <WorkoutStatusBadge status={s.workout} /> : null}

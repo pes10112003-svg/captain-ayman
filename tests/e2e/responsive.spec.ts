@@ -35,14 +35,14 @@ test("@mobile every coach and client page fits the phone width, even with many w
     await expectFitsWidth(p, path);
   }
   await p.goto(`${base}/workouts`);
-  const addDay = p.getByRole("button", { name: "Add workout day" });
+  const addDay = p.getByRole("button", { name: "Add table (training day)" });
   await expect(async () => {
     await addDay.click();
     await expect(p.getByText("Unsaved changes")).toBeVisible({ timeout: 1000 });
   }).toPass();
   await addDay.click();
   await addDay.click();
-  await expectFitsWidth(p, "workout editor with extra days");
+  await expectFitsWidth(p, "training sheet with extra tables");
   // The save bar stays on screen.
   const save = p.getByRole("button", { name: "Save plan" });
   await expect(save).toBeInViewport();

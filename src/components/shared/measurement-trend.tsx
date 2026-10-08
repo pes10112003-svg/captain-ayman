@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { TrendChart } from "@/components/charts/charts";
+import { TrendChart } from "@/components/charts/lazy";
 import { Select } from "@/components/ui/input";
 import { useI18n } from "@/i18n/client";
 import { measureTypeLabel } from "@/i18n/labels";
@@ -9,7 +9,17 @@ import { measureTypeLabel } from "@/i18n/labels";
 type T = { id: string; name: string; kind: string; unit: string; key?: string | null; isSystem?: boolean | null };
 
 /** Pick any measurement type and see its trend over time. */
-export function MeasurementTrend({ types, series, weightUnit, lengthUnit }: { types: T[]; series: Record<string, { date: string; value: number }[]>; weightUnit: string; lengthUnit: string }) {
+export function MeasurementTrend({
+  types,
+  series,
+  weightUnit,
+  lengthUnit,
+}: {
+  types: T[];
+  series: Record<string, { date: string; value: number }[]>;
+  weightUnit: string;
+  lengthUnit: string;
+}) {
   const { t, fmt, locale } = useI18n();
   const withData = types.filter((ty) => (series[ty.id]?.length ?? 0) >= 2);
   const [selected, setSelected] = useState(withData[0]?.id ?? "");
