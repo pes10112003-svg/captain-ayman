@@ -21,7 +21,6 @@ import { addDays, dayOfWeek, diffDays, startOfWeek, todayInTz, zonedParts } from
 import { planWeek } from "@/server/services/workouts";
 import { bmi } from "@/lib/units";
 import { FIXED_COACH_SETTINGS } from "@/lib/validation";
-import { encrypt } from "@/server/crypto";
 
 if (process.env.NODE_ENV === "production" && process.env.ALLOW_PROD_SEED !== "true") {
   console.error("Refusing to seed demo data in production (set ALLOW_PROD_SEED=true to override).");
@@ -32,8 +31,6 @@ const TZ = FIXED_COACH_SETTINGS.timezone; // the app is fixed to Egypt time
 const COACH_EMAIL = (process.env.SEED_COACH_EMAIL ?? "coach@kinetic.test").toLowerCase();
 const COACH_PASSWORD = process.env.SEED_COACH_PASSWORD ?? "CoachDemo!2026";
 const CLIENT_PASSWORD = process.env.SEED_CLIENT_PASSWORD ?? "ClientDemo!2026";
-/** Demo site access code (visitors enter it once per device). Set SEED_ACCESS_CODE="" to leave the site open. */
-const ACCESS_CODE = process.env.SEED_ACCESS_CODE ?? "AYMAN-2026";
 
 /* ── deterministic randomness ─────────────────────────────── */
 let seed = 20261001;
@@ -518,20 +515,6 @@ async function main() {
     businessName: null,
     weekStartsOn: 6,
   });
-  await db
-    .insert(s.siteSettings)
-    .values({
-      id: 1,
-      accessCodeEnc: ACCESS_CODE ? encrypt(ACCESS_CODE) : null,
-      accessVersion: randomUUID(),
-    })
-    .onConflictDoUpdate({
-      target: s.siteSettings.id,
-      set: {
-        accessCodeEnc: ACCESS_CODE ? encrypt(ACCESS_CODE) : null,
-        accessVersion: randomUUID(),
-      },
-    });
 
   const activity: (typeof s.activityLogs.$inferInsert)[] = [];
   const notifications: (typeof s.notifications.$inferInsert)[] = [];
@@ -1118,7 +1101,6 @@ async function main() {
   await db.update(s.coachSettings).set({ lastSnapshotDate: null }).where(eq(s.coachSettings.coachId, coach!.id));
 
   console.log(`\n✓ Seed complete — ${activity.length} activity events.\n`);
-  console.log("  Access code", ACCESS_CODE || "(off)");
   console.log("  Coach     ", COACH_EMAIL, " / ", COACH_PASSWORD);
   console.log("  Client A  ", "omar@kinetic.test", " / ", CLIENT_PASSWORD);
   console.log("  Client B  ", "mariam@kinetic.test", " / ", CLIENT_PASSWORD);

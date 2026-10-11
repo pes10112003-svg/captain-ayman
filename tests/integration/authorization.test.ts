@@ -6,14 +6,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/server/db";
-import { mealLogs, siteSettings, users, workoutLogs, workoutSetLogs } from "@/server/db/schema";
-import { ForbiddenError, NotFoundError, ValidationError } from "@/server/errors";
+import { mealLogs, users, workoutLogs, workoutSetLogs } from "@/server/db/schema";
+import { ForbiddenError, NotFoundError } from "@/server/errors";
 import type { Actor } from "@/server/auth/types";
 import { authorizeClient } from "@/server/authz";
 import { getClientProfile, listClients, resetClientPassword, updatePermissions } from "@/server/services/clients";
 import { authenticate, changePassword } from "@/server/services/auth";
-import { getAccessSettings, updateAccessCode } from "@/server/services/access";
-import { getGateState, invalidateGateCache, verifyAccessCode } from "@/server/auth/gate";
 import {
   completeWorkout,
   editWorkoutLog,
@@ -432,39 +430,6 @@ describe("13 · coach-controlled passwords", () => {
     expect(u!.mustChangePassword).toBe(true);
     await expect(changePassword({ ...B.actor, mustChangePassword: true }, undefined, "Chosen!2026x")).resolves.toBeTruthy();
     await expect(authenticate(B.actor.email, "Chosen!2026x", null)).resolves.toHaveProperty("mustChangePassword", false);
-  });
-});
-
-describe("14 · site access code", () => {
-  it("only a coach can view or change the access code; it is stored encrypted and compared loosely", async () => {
-    await expect(getAccessSettings(A.actor)).rejects.toBeInstanceOf(ForbiddenError);
-    await expect(updateAccessCode(A.actor, "CLIENT-CODE")).rejects.toBeInstanceOf(ForbiddenError);
-    await expect(updateAccessCode(coach, "abc")).rejects.toBeInstanceOf(ValidationError);
-
-    await updateAccessCode(coach, "Ayman-2026");
-    const [row] = await db.select().from(siteSettings);
-    expect(row!.accessCodeEnc).toBeTruthy();
-    expect(row!.accessCodeEnc).not.toContain("Ayman");
-    await expect(getAccessSettings(coach)).resolves.toEqual({
-      enabled: true,
-      code: "Ayman-2026",
-    });
-    await expect(verifyAccessCode("ayman 2026")).resolves.toBe(true);
-    await expect(verifyAccessCode("AYMAN-2025")).resolves.toBe(false);
-  });
-
-  it("changing the code rotates the version (revoking every existing device); turning it off opens the gate", async () => {
-    await updateAccessCode(coach, "FIRST-CODE-1");
-    const v1 = (await getGateState(true)).version;
-    await updateAccessCode(coach, "SECOND-CODE-2");
-    invalidateGateCache();
-    const s2 = await getGateState(true);
-    expect(s2.version).not.toBe(v1);
-    await expect(verifyAccessCode("FIRST-CODE-1")).resolves.toBe(false);
-    await updateAccessCode(coach, null);
-    const s3 = await getGateState(true);
-    expect(s3.enabled).toBe(false);
-    expect(s3.version).not.toBe(s2.version);
   });
 });
 

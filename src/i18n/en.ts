@@ -361,7 +361,7 @@ export const en = {
     passwordYouSet: "The password you typed",
     shownOnce: "For privacy this password isn't shown again — you can always set a new one from the client's profile.",
     copyInvite: "Copy invite message",
-    invite: "Hi {name}! Your coaching account is ready.\nLink: {url}\nAccess code: {code}\nEmail: {email}\nPassword: {password}",
+    invite: "Hi {name}! Your coaching account is ready.\nLink: {url}\nEmail: {email}\nPassword: {password}",
     buildWorkout: "Build workout plan",
     openProfile: "Open profile",
     saved: "Client profile saved.",

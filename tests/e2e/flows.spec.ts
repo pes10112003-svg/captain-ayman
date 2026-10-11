@@ -126,7 +126,7 @@ test("coach sets the client's password; client signs in directly and can't chang
   await coach.page.fill("#password", "CoachChose!2026");
   await coach.page.getByRole("button", { name: "Create client" }).click();
   await expect(coach.page.getByText("Client account created")).toBeVisible();
-  await expect(coach.page.getByText("Access code: AYMAN-2026")).toBeVisible(); // ready-to-send invite message
+  await expect(coach.page.getByText(/Android phone\? Install the app: .*\/get-app/)).toBeVisible(); // ready-to-send invite message
   await coach.page.getByRole("link", { name: "Open profile" }).click();
   await coach.page.waitForURL(/\/coach\/clients\/[0-9a-f-]{36}$/);
   const clientUrl = coach.page.url();

@@ -67,9 +67,6 @@ export function SetupForm({ hasCoach }: { hasCoach: boolean }) {
       <Field label={t.setup.coachPassword} htmlFor="password" error={errors?.password} hint={t.auth.newPasswordHint}>
         <PasswordInput id="password" name="password" autoComplete="new-password" minLength={8} required />
       </Field>
-      <Field label={t.setup.accessCode} htmlFor="accessCode" error={errors?.accessCode} hint={t.setup.accessCodeHint} optional>
-        <Input id="accessCode" name="accessCode" dir="ltr" autoComplete="off" spellCheck={false} className="font-mono uppercase" />
-      </Field>
       <Button type="submit" size="lg" className="w-full" loading={pending}>
         {mode === "create" ? t.setup.submitCreate : t.setup.submitReset}
       </Button>

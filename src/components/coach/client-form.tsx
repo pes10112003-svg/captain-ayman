@@ -37,7 +37,7 @@ export type ClientFormDefaults = {
 };
 
 /** What the coach needs to invite a client: the site link and (if enabled) the site access code. */
-export type InviteInfo = { url: string; accessCode: string | null };
+export type InviteInfo = { url: string };
 
 const EMPTY: ClientFormDefaults = {
   fullName: "",
@@ -59,19 +59,11 @@ export function buildInviteMessage(t: Dict, info: InviteInfo, client: { name: st
   const msg = interpolate(t.clientForm.invite, {
     name: client.name.split(" ")[0],
     url: info.url,
-    code: info.accessCode ?? "",
     email: client.email,
     password: client.password,
   });
-  // No access code configured → drop that line.
-  const body = info.accessCode
-    ? msg
-    : msg
-        .split("\n")
-        .filter((line) => !line.trim().endsWith(":"))
-        .join("\n");
   // Android clients use the app (client pages don't open in Android browsers).
-  return `${body}\n${interpolate(t.app.inviteLine, { url: `${info.url.replace(/\/+$/, "")}/get-app` })}`;
+  return `${msg}\n${interpolate(t.app.inviteLine, { url: `${info.url.replace(/\/+$/, "")}/get-app` })}`;
 }
 
 type CreateResult = { id: string; email: string; generatedPassword: string | null };
@@ -146,17 +138,6 @@ export function ClientForm({
               </div>
               <CopyButton value={finalPassword} />
             </div>
-            {invite?.accessCode ? (
-              <div className="flex items-center justify-between gap-3 border-t border-line pt-3">
-                <div className="min-w-0">
-                  <p className="text-xs text-muted">{t.access.code}</p>
-                  <p className="font-mono text-sm font-semibold tracking-wider" dir="ltr">
-                    {invite.accessCode}
-                  </p>
-                </div>
-                <CopyButton value={invite.accessCode} />
-              </div>
-            ) : null}
           </div>
           {message ? (
             <div className="mt-4">

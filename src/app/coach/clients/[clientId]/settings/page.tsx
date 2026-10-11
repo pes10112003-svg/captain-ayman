@@ -7,19 +7,17 @@ import { ClientAccountPanel } from "@/components/coach/client-account-panel";
 import { PermissionsForm } from "@/components/coach/permissions-form";
 import { getI18n } from "@/i18n/server";
 import { cmTo, kgTo, round } from "@/lib/units";
-import { getAccessSettings } from "@/server/services/access";
 import { env } from "@/server/env";
 
 export default async function ClientSettingsPage({ params }: { params: Promise<{ clientId: string }> }) {
   const actor = await requireCoachPage();
   const { clientId } = await params;
-  const [{ client, permissions }, { prefs, today }, access, { t }] = await Promise.all([
+  const [{ client, permissions }, { prefs, today }, { t }] = await Promise.all([
     orNotFound(getClientProfile(actor, clientId)),
     coachToday(actor.userId),
-    getAccessSettings(actor),
     getI18n(),
   ]);
-  const invite = { url: env().APP_URL, accessCode: access.code };
+  const invite = { url: env().APP_URL };
   const w = (kg: number | null) => (kg == null ? null : round(kgTo(kg, prefs.weightUnit), 1));
   return (
     <div className="space-y-10">

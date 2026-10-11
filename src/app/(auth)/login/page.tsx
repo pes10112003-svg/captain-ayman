@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentActor } from "@/server/auth/session";
 import { homePathFor } from "@/server/auth/guards";
-import { requireAccess } from "@/server/auth/gate";
 import { FormMessage } from "@/components/shared/form-message";
 import { getI18n } from "@/i18n/server";
 import { LoginForm } from "./login-form";
@@ -12,7 +11,6 @@ export async function generateMetadata() {
 }
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; reset?: string }> }) {
-  await requireAccess();
   const actor = await getCurrentActor();
   if (actor) redirect(actor.mustChangePassword ? "/change-password" : homePathFor(actor));
   const [{ next, reset }, { t }] = await Promise.all([searchParams, getI18n()]);

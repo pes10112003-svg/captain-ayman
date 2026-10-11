@@ -5,7 +5,6 @@ import { and, eq, gt, lt, ne } from "drizzle-orm";
 import { db } from "../db";
 import { clients, sessions, users } from "../db/schema";
 import { env } from "../env";
-import { hasValidAccess } from "./gate";
 import { clientIp } from "./rate-limit";
 import { generateToken, hashToken } from "./tokens";
 import type { Actor } from "./types";
@@ -95,8 +94,6 @@ export async function resolveSessionToken(token: string | undefined | null): Pro
 
 /** Per-request memoised current actor (works in RSC, server actions and route handlers). */
 export const getCurrentActor = cache(async (): Promise<Actor | null> => {
-  // No valid site access code → behave as signed out everywhere (pages, actions, API).
-  if (!(await hasValidAccess())) return null;
   const token = (await cookies()).get(sessionCookieName())?.value;
   return resolveSessionToken(token);
 });

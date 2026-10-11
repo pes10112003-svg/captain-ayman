@@ -7,13 +7,12 @@ import { safeEqual } from "../crypto";
 import { ValidationError } from "../errors";
 import { hashPassword } from "../auth/password";
 import { assertNotLimited, clearRateLimit, hitRateLimit } from "../auth/rate-limit";
-import { isValidNewAccessCode, setAccessCode } from "../auth/gate";
 import { FIXED_COACH_SETTINGS } from "@/lib/validation";
 
 /**
  * Admin setup & recovery (/setup). Protected by ADMIN_KEY from the hosting environment — whoever
  * controls the hosting controls the app. Used once to create the coach account, and later to
- * recover if the coach forgets their password or the site access code.
+ * recover if the coach forgets their password.
  */
 export async function setupStatus() {
   const [row] = await db
@@ -29,7 +28,6 @@ export type SetupInput = {
   name?: string;
   email: string;
   password: string;
-  accessCode?: string | null;
 };
 
 const LIMIT = 5;
@@ -49,10 +47,6 @@ export async function runSetup(input: SetupInput, ip: string | null) {
   await clearRateLimit(rlKey);
 
   const email = input.email.trim().toLowerCase();
-  const accessCode = input.accessCode?.trim() || null;
-  if (accessCode && !isValidNewAccessCode(accessCode)) {
-    throw new ValidationError("Access code must be at least 6 letters or numbers.", { accessCode: ["Access code must be at least 6 letters or numbers."] });
-  }
   const passwordHash = await hashPassword(input.password);
 
   if (input.mode === "create") {
@@ -101,6 +95,4 @@ export async function runSetup(input: SetupInput, ip: string | null) {
       .where(eq(users.id, coach.id));
     await db.delete(sessions).where(eq(sessions.userId, coach.id));
   }
-
-  if (accessCode) await setAccessCode(accessCode, null);
 }

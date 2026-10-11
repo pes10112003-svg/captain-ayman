@@ -1,6 +1,5 @@
 import { requireCoachPage } from "@/server/auth/guards";
 import { coachToday } from "@/server/services/settings";
-import { getAccessSettings } from "@/server/services/access";
 import { env } from "@/server/env";
 import { PageHeader } from "@/components/ui/page-header";
 import { ClientForm } from "@/components/coach/client-form";
@@ -13,7 +12,7 @@ export async function generateMetadata() {
 
 export default async function NewClientPage() {
   const actor = await requireCoachPage();
-  const [{ prefs, today }, access, { t }] = await Promise.all([coachToday(actor.userId), getAccessSettings(actor), getI18n()]);
+  const [{ prefs, today }, { t }] = await Promise.all([coachToday(actor.userId), getI18n()]);
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader eyebrow={t.nav.clients} title={t.clientForm.newTitle} description={t.clientForm.newSubtitle} />
@@ -22,7 +21,7 @@ export default async function NewClientPage() {
         weightUnit={prefs.weightUnit}
         lengthUnit={prefs.lengthUnit}
         today={today}
-        invite={{ url: env().APP_URL, accessCode: access.code }}
+        invite={{ url: env().APP_URL }}
       />
     </div>
   );
