@@ -66,6 +66,9 @@ jobs:
       - name: Test build of the app (points at the local site, WebView debugging on)
         run: APP_BASE=http://10.0.2.2:3000/ APP_DEBUG=true APK_NAME=captain-ayman-test.apk bash android/build.sh
 
+      - name: Free disk space for the emulator
+        run: sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/local/lib/android/sdk/ndk "$AGENT_TOOLSDIRECTORY" && df -h /
+
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -79,7 +82,8 @@ jobs:
           target: google_apis
           arch: x86_64
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
+          disk-size: 3000M
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot -no-metrics
           script: |
             adb install -r android/build/captain-ayman-test.apk
             node android/test/e2e.mjs

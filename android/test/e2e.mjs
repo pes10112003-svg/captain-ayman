@@ -49,10 +49,15 @@ async function run() {
   fs.writeFileSync(path.join(OUT, "system-screenshot.png"), cap);
   // Only the app's area: the status/navigation bar icons belong to the system and stay visible.
   const { width, height } = await sharp(cap).metadata();
-  const middle = await sharp(cap).extract({ left: 0, top: Math.round(height * 0.15), width, height: Math.round(height * 0.7) }).stats();
+  const middle = await sharp(cap)
+    .extract({ left: 0, top: Math.round(height * 0.15), width, height: Math.round(height * 0.7) })
+    .stats();
   const brightness = middle.channels.slice(0, 3).reduce((a, c) => a + c.mean, 0) / 3;
   check("system screenshot of the app is black (FLAG_SECURE)", brightness < 2, `mean brightness ${brightness.toFixed(2)}`);
-  const ourWindow = adb("dumpsys", "window", "windows").split("Window #").find((w) => w.includes(`${PKG}/`)) ?? "";
+  const ourWindow =
+    adb("dumpsys", "window", "windows")
+      .split("Window #")
+      .find((w) => w.includes(`${PKG}/`)) ?? "";
   check("app window is marked secure", /\bSECURE\b/.test(ourWindow));
 
   // 2. The site sees the app.
@@ -83,7 +88,9 @@ async function run() {
   check("one alarm per meal is scheduled (4 demo meals)", alarms, `alarms: ${alarms ?? 0}`);
 
   // 5. A reminder actually shows up as a notification at its time.
-  const t = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(Date.now() + 100_000));
+  const t = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(
+    new Date(Date.now() + 100_000),
+  );
   await page.evaluate(
     (json) => window.CaptainAymanApp.setMealReminders(json),
     JSON.stringify({ tz: "Africa/Cairo", meals: [{ time: t, title: "وقت وجبة الاختبار", body: "Emulator test reminder" }] }),
@@ -106,7 +113,11 @@ async function run() {
   }
 
   // 6. Pages render inside the app (screenshots taken through the WebView, not the screen).
-  for (const [i, p] of [["2", "client/nutrition"], ["3", "client/workout"], ["4", "client/progress"]]) {
+  for (const [i, p] of [
+    ["2", "client/nutrition"],
+    ["3", "client/workout"],
+    ["4", "client/progress"],
+  ]) {
     await page.goto(BASE + p);
     await page.waitForLoadState("networkidle");
     check(`page /${p} opens in the app`, new URL(page.url()).pathname === `/${p}`, page.url());
@@ -149,7 +160,10 @@ async function run() {
   // 10. Signing out clears the reminders.
   await page.goto(BASE + "login").catch(() => undefined);
   await page.waitForLoadState("networkidle").catch(() => undefined);
-  const cleared = await waitFor(async () => ((adb("dumpsys", "alarm").match(/com\.captainayman\.app\.MEAL_REMINDER/g) ?? []).length === 0 ? true : null), 15_000);
+  const cleared = await waitFor(
+    async () => ((adb("dumpsys", "alarm").match(/com\.captainayman\.app\.MEAL_REMINDER/g) ?? []).length === 0 ? true : null),
+    15_000,
+  );
   check("reminders are cleared on the sign-in page", cleared);
 }
 
