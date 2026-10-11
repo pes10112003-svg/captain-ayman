@@ -19,8 +19,20 @@ function check(name, ok, detail = "", soft = false) {
 }
 const adb = (...args) => execFileSync("adb", ["shell", ...args], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-// Pending alarms only ("tag=" lines); the alarm history further down mentions old ones too.
-const pendingReminders = () => (adb("dumpsys", "alarm").match(/tag=\*walarm\*:com\.captainayman\.app\.MEAL_REMINDER/g) ?? []).length;
+// Our alarms in the "Pending alarms" section only (history sections further down mention old ones too).
+let lastAlarmDump = "";
+const pendingReminders = () => {
+  const lines = (lastAlarmDump = adb("dumpsys", "alarm")).split("\n");
+  const start = lines.findIndex((l) => /^\s*Pending alarms:/.test(l));
+  if (start === -1) return (lastAlarmDump.match(/tag=\*walarm\*:com\.captainayman\.app\.MEAL_REMINDER/g) ?? []).length;
+  const indent = lines[start].search(/\S/);
+  let n = 0;
+  for (const l of lines.slice(start + 1)) {
+    if (l.trim() && l.search(/\S/) <= indent) break;
+    if (/tag=\*walarm\*:com\.captainayman\.app\.MEAL_REMINDER/.test(l)) n++;
+  }
+  return n;
+};
 const uiDump = () => {
   adb("uiautomator", "dump", "/sdcard/ui.xml");
   return adb("cat", "/sdcard/ui.xml");
@@ -109,7 +121,7 @@ async function run() {
     const n = pendingReminders();
     return n === 4 ? n : null;
   }, 20_000);
-  check("one alarm per meal is scheduled (4 demo meals)", alarms, `alarms: ${alarms ?? 0}`);
+  check("one alarm per meal is scheduled (4 demo meals)", alarms, `pending: ${pendingReminders()}`);
 
   // 5. A reminder actually shows up as a notification at its time.
   const t = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(
@@ -164,7 +176,7 @@ async function run() {
     const n = pendingReminders();
     return n === 4 ? n : null;
   }, 15_000);
-  check("real meal schedule restored", back, `alarms: ${back ?? 0}`);
+  check("real meal schedule restored", back, `pending: ${pendingReminders()}`);
 
   // 7. Back button goes back inside the app.
   adb("input", "keyevent", "4");
@@ -194,11 +206,12 @@ async function run() {
   }
 
   // 10. In the phone's Chrome the site offers the app instead (best effort: Chrome may show its welcome screen first).
-  adb("am", "start", "-a", "android.intent.action.VIEW", "-d", BASE + "get-app", "com.android.chrome");
-  const chrome = await waitFor(async () => /افتح من تطبيق كابتن أيمن|Open it in the Captain Ayman app/.test(uiDump()), 25_000, 2500);
+  const hasChrome = adb("pm", "list", "packages", "com.android.chrome").includes("com.android.chrome");
+  if (hasChrome) adb("am", "start", "-a", "android.intent.action.VIEW", "-d", BASE + "get-app", "com.android.chrome");
+  const chrome = hasChrome && (await waitFor(async () => /افتح من تطبيق كابتن أيمن|Open it in the Captain Ayman app/.test(uiDump()), 25_000, 2500));
   const chromeShot = screencap();
   if (chromeShot.length > 100) fs.writeFileSync(path.join(OUT, "5-chrome-get-app.png"), chromeShot);
-  check("Chrome on Android gets the “install the app” page", chrome, "", true);
+  if (hasChrome) check("Chrome on Android gets the “install the app” page", chrome, "", true);
   adb("am", "start", "-W", "-n", `${PKG}/.MainActivity`);
   await sleep(2000);
 
@@ -232,6 +245,7 @@ try {
 const crash = /FATAL EXCEPTION[\s\S]{0,2000}/.exec(execFileSync("adb", ["logcat", "-d", "-b", "crash"], { encoding: "utf8" }))?.[0];
 check("app did not crash", !crash, crash ?? "");
 
+if (lastAlarmDump) fs.writeFileSync(path.join(OUT, "alarms.txt"), lastAlarmDump);
 const failed = results.filter((r) => !r.ok && !r.soft);
 fs.writeFileSync(path.join(OUT, "report.json"), JSON.stringify({ passed: results.filter((r) => r.ok).length, failed: failed.length, results }, null, 2));
 console.log(`\n${results.filter((r) => r.ok).length}/${results.length} checks passed`);
