@@ -19,6 +19,8 @@ function check(name, ok, detail = "", soft = false) {
 }
 const adb = (...args) => execFileSync("adb", ["shell", ...args], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// Pending alarms only ("tag=" lines); the alarm history further down mentions old ones too.
+const pendingReminders = () => (adb("dumpsys", "alarm").match(/tag=\*walarm\*:com\.captainayman\.app\.MEAL_REMINDER/g) ?? []).length;
 const uiDump = () => {
   adb("uiautomator", "dump", "/sdcard/ui.xml");
   return adb("cat", "/sdcard/ui.xml");
@@ -103,8 +105,8 @@ async function run() {
 
   // 4. Meal reminders: the client's meals are scheduled as alarms on the phone.
   const alarms = await waitFor(async () => {
-    const n = (adb("dumpsys", "alarm").match(/com\.captainayman\.app\.MEAL_REMINDER/g) ?? []).length;
-    return n >= 4 ? n : null;
+    const n = pendingReminders();
+    return n === 4 ? n : null;
   }, 20_000);
   check("one alarm per meal is scheduled (4 demo meals)", alarms, `alarms: ${alarms ?? 0}`);
 
@@ -146,8 +148,8 @@ async function run() {
   }
   // The real schedule goes back after the test reminder.
   const back = await waitFor(async () => {
-    const n = (adb("dumpsys", "alarm").match(/com\.captainayman\.app\.MEAL_REMINDER/g) ?? []).length;
-    return n >= 4 ? n : null;
+    const n = pendingReminders();
+    return n === 4 ? n : null;
   }, 15_000);
   check("real meal schedule restored", back, `alarms: ${back ?? 0}`);
 
@@ -178,14 +180,26 @@ async function run() {
     check("“Try again” reloads once the internet is back", recovered, "", true);
   }
 
-  // 10. Signing out clears the reminders.
-  await page.goto(BASE + "login").catch(() => undefined);
-  await page.waitForLoadState("networkidle").catch(() => undefined);
-  const cleared = await waitFor(
-    async () => ((adb("dumpsys", "alarm").match(/com\.captainayman\.app\.MEAL_REMINDER/g) ?? []).length === 0 ? true : null),
-    15_000,
-  );
-  check("reminders are cleared on the sign-in page", cleared);
+  // 10. In the phone's Chrome the site offers the app instead (best effort: Chrome may show its welcome screen first).
+  adb("am", "start", "-a", "android.intent.action.VIEW", "-d", BASE + "get-app", "com.android.chrome");
+  const chrome = await waitFor(async () => /افتح من تطبيق كابتن أيمن|Open it in the Captain Ayman app/.test(uiDump()), 25_000, 2500);
+  const chromeShot = screencap();
+  if (chromeShot.length > 100) fs.writeFileSync(path.join(OUT, "5-chrome-get-app.png"), chromeShot);
+  check("Chrome on Android gets the “install the app” page", chrome, "", true);
+  adb("am", "start", "-W", "-n", `${PKG}/.MainActivity`);
+  await sleep(2000);
+
+  // 11. Signing out clears the reminders.
+  await page.goto(BASE + "client/profile");
+  await Promise.all([
+    page.waitForURL(/\/login/),
+    page
+      .locator("form button[type=submit]")
+      .filter({ hasText: /تسجيل الخروج|Sign out/ })
+      .click(),
+  ]);
+  const cleared = await waitFor(async () => (pendingReminders() === 0 ? true : null), 15_000);
+  check("signing out clears the reminders", cleared, `pending: ${pendingReminders()}`);
 }
 
 try {
