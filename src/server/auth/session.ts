@@ -76,8 +76,10 @@ export async function resolveSessionToken(token: string | undefined | null): Pro
     coachId = client.coachId;
   }
 
+  // Sliding expiry: anyone who keeps using the app stays signed in (src/proxy.ts renews the cookie).
   if (now.getTime() - row.lastUsedAt.getTime() > TOUCH_INTERVAL_MS) {
-    await db.update(sessions).set({ lastUsedAt: now }).where(eq(sessions.id, row.sessionId));
+    const expiresAt = new Date(now.getTime() + env().SESSION_TTL_DAYS * 86_400_000);
+    await db.update(sessions).set({ lastUsedAt: now, expiresAt }).where(eq(sessions.id, row.sessionId));
   }
 
   return {

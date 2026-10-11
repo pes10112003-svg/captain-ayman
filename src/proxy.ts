@@ -10,9 +10,12 @@ import { clientAreaAllowed } from "@/lib/app-shell";
  */
 const PROTECTED = ["/coach", "/client", "/change-password"];
 
+const SESSION_TTL_SECONDS = Number(process.env.SESSION_TTL_DAYS ?? 30) * 86_400;
+
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  const hasSession = request.cookies.has("kinetic_session") || request.cookies.has("__Host-kinetic_session");
+  const sessionCookie = request.cookies.get("__Host-kinetic_session") ?? request.cookies.get("kinetic_session");
+  const hasSession = !!sessionCookie;
 
   if (!hasSession && PROTECTED.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
     const url = request.nextUrl.clone();
@@ -56,6 +59,17 @@ export function proxy(request: NextRequest) {
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", csp);
+  // Keep the sign-in cookie alive while the app is in use (the database session slides too — see
+  // resolveSessionToken). Page loads only: never on POSTs, so sign-out's cookie deletion always wins.
+  if (sessionCookie && request.method === "GET") {
+    response.cookies.set(sessionCookie.name, sessionCookie.value, {
+      httpOnly: true,
+      secure: sessionCookie.name.startsWith("__Host-") || https,
+      sameSite: "lax",
+      path: "/",
+      maxAge: SESSION_TTL_SECONDS,
+    });
+  }
   return response;
 }
 

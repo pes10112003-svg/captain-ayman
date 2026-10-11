@@ -77,7 +77,6 @@ async function run() {
   const [device] = await _android.devices({ omitDriverInstall: true });
   const webview = await device.webView({ pkg: PKG }, { timeout: 90_000 });
   let page = await webview.page();
-  const context = page.context();
   page.setDefaultTimeout(45_000);
 
   // 1. Screenshots are blocked: capturing the app gives nothing or a black image.
@@ -123,7 +122,9 @@ async function run() {
   }, 20_000);
   check("one alarm per meal is scheduled (4 demo meals)", alarms, `pending: ${pendingReminders()}`);
 
-  // 5. A reminder actually shows up as a notification at its time.
+  // 5. The app is closed (sent to the background, then its process killed — what happens when it's
+  //    swiped away or cleared from memory). The reminder still arrives on time, and tapping it opens
+  //    the app again — still signed in — on the nutrition page.
   const t = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Cairo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(
     new Date(Date.now() + 100_000),
   );
@@ -131,31 +132,33 @@ async function run() {
     (json) => window.CaptainAymanApp.setMealReminders(json),
     JSON.stringify({ tz: "Africa/Cairo", meals: [{ time: t, title: "وقت وجبة الاختبار", body: "Emulator test reminder" }] }),
   );
+  adb("input", "keyevent", "3");
+  await sleep(2000);
+  adb("am", "kill", PKG);
+  await sleep(2000);
+  let pid = "";
+  try {
+    pid = adb("pidof", PKG).trim();
+  } catch {
+    pid = "";
+  }
+  check("the app is fully closed (no process left)", !pid, pid ? `still running: ${pid}` : "");
+
   const shown = await waitFor(async () => /Emulator test reminder/.test(adb("dumpsys", "notification", "--noredact")), 200_000, 5000);
-  check("meal reminder notification appears on time", shown, `scheduled for ${t} Cairo`);
+  check("meal reminder arrives on time while the app is closed", shown, `scheduled for ${t} Cairo`);
   if (shown) {
     adb("cmd", "statusbar", "expand-notifications");
     await sleep(1500);
-    const ui = uiDump();
-    const m = ui.match(/text="Emulator test reminder"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/);
+    const m = uiDump().match(/text="Emulator test reminder"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/);
     if (m) {
+      const next = device.waitForEvent("webview", { timeout: 90_000 });
       adb("input", "tap", String((+m[1] + +m[3]) >> 1), String((+m[2] + +m[4]) >> 1));
-      // Same WebView normally; if Android rebuilt the screen, follow the new page.
-      const opened = await waitFor(
-        async () => context.pages().find((p) => !p.isClosed() && new URL(p.url()).pathname === "/client/nutrition") ?? null,
-        25_000,
-        1000,
-      );
-      if (opened) page = opened;
-      check("tapping the reminder opens the nutrition page", opened, page.url());
-      check(
-        "the screen was kept (not rebuilt) when the reminder opened it",
-        opened && !page.isClosed() && context.pages().length === 1,
-        `pages: ${context.pages().length}`,
-        true,
-      );
+      page = await (await next).page();
+      page.setDefaultTimeout(45_000);
+      const opened = await waitFor(async () => (new URL(page.url()).pathname === "/client/nutrition" ? true : null), 30_000, 1000);
+      check("tapping it reopens the app, still signed in, on the nutrition page", opened, page.url());
     } else {
-      check("tapping the reminder opens the nutrition page", false, "notification not found in the shade", true);
+      check("tapping it reopens the app, still signed in, on the nutrition page", false, "notification not found in the shade");
       adb("cmd", "statusbar", "collapse");
     }
   }

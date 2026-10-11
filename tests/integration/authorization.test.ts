@@ -6,9 +6,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/server/db";
-import { mealLogs, users, workoutLogs, workoutSetLogs } from "@/server/db/schema";
+import { mealLogs, sessions, users, workoutLogs, workoutSetLogs } from "@/server/db/schema";
 import { ForbiddenError, NotFoundError } from "@/server/errors";
 import type { Actor } from "@/server/auth/types";
+import { resolveSessionToken } from "@/server/auth/session";
+import { generateToken, hashToken } from "@/server/auth/tokens";
 import { authorizeClient } from "@/server/authz";
 import { getClientProfile, listClients, resetClientPassword, updatePermissions } from "@/server/services/clients";
 import { authenticate, changePassword } from "@/server/services/auth";
@@ -474,5 +476,32 @@ describe("15 · multi-week training sheets", () => {
     expect(log!.exercises[0]!.sets[0]!.targetReps).toBe(12);
     const editor = await getWorkoutPlanForEditor(coach, A.id);
     expect(editor.plan!.cycleFinished).toBe(true);
+  });
+});
+
+describe("16 · staying signed in", () => {
+  it("using the app pushes the session's expiry forward (sliding), so active users are never signed out", async () => {
+    const coach = await makeCoach();
+    const token = generateToken();
+    const day = 86_400_000;
+    await db.insert(sessions).values({
+      userId: coach.userId,
+      tokenHash: hashToken(token),
+      lastUsedAt: new Date(Date.now() - day),
+      expiresAt: new Date(Date.now() + day), // would end tomorrow
+    });
+    expect(await resolveSessionToken(token)).not.toBeNull();
+    const [row] = await db
+      .select()
+      .from(sessions)
+      .where(eq(sessions.tokenHash, hashToken(token)));
+    expect(row!.expiresAt.getTime()).toBeGreaterThan(Date.now() + 29 * day);
+
+    // An expired session stays expired.
+    const old = generateToken();
+    await db
+      .insert(sessions)
+      .values({ userId: coach.userId, tokenHash: hashToken(old), lastUsedAt: new Date(Date.now() - 31 * day), expiresAt: new Date(Date.now() - 1000) });
+    expect(await resolveSessionToken(old)).toBeNull();
   });
 });
