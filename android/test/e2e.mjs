@@ -19,12 +19,12 @@ function check(name, ok, detail = "", soft = false) {
 }
 const adb = (...args) => execFileSync("adb", ["shell", ...args], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-// Our alarms in the "Pending alarms" section only (history sections further down mention old ones too).
+// Our alarms in the "N pending alarms:" section only (history sections further down mention old ones too).
 let lastAlarmDump = "";
 const pendingReminders = () => {
   const lines = (lastAlarmDump = adb("dumpsys", "alarm")).split("\n");
-  const start = lines.findIndex((l) => /^\s*Pending alarms:/.test(l));
-  if (start === -1) return (lastAlarmDump.match(/tag=\*walarm\*:com\.captainayman\.app\.MEAL_REMINDER/g) ?? []).length;
+  const start = lines.findIndex((l) => /^\s*\d+ pending alarms:\s*$/i.test(l)); // e.g. "  20 pending alarms:"
+  if (start === -1) return -1;
   const indent = lines[start].search(/\S/);
   let n = 0;
   for (const l of lines.slice(start + 1)) {
