@@ -64,7 +64,8 @@ async function run() {
 
   const [device] = await _android.devices({ omitDriverInstall: true });
   const webview = await device.webView({ pkg: PKG }, { timeout: 90_000 });
-  const page = await webview.page();
+  let page = await webview.page();
+  const context = page.context();
   page.setDefaultTimeout(45_000);
 
   // 1. Screenshots are blocked: capturing the app gives nothing or a black image.
@@ -127,8 +128,20 @@ async function run() {
     const m = ui.match(/text="Emulator test reminder"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/);
     if (m) {
       adb("input", "tap", String((+m[1] + +m[3]) >> 1), String((+m[2] + +m[4]) >> 1));
-      const opened = await waitFor(async () => (new URL(page.url()).pathname === "/client/nutrition" ? true : null), 20_000, 1000);
+      // Same WebView normally; if Android rebuilt the screen, follow the new page.
+      const opened = await waitFor(
+        async () => context.pages().find((p) => !p.isClosed() && new URL(p.url()).pathname === "/client/nutrition") ?? null,
+        25_000,
+        1000,
+      );
+      if (opened) page = opened;
       check("tapping the reminder opens the nutrition page", opened, page.url());
+      check(
+        "the screen was kept (not rebuilt) when the reminder opened it",
+        opened && !page.isClosed() && context.pages().length === 1,
+        `pages: ${context.pages().length}`,
+        true,
+      );
     } else {
       check("tapping the reminder opens the nutrition page", false, "notification not found in the shade", true);
       adb("cmd", "statusbar", "collapse");
@@ -206,6 +219,15 @@ try {
   await run();
 } catch (e) {
   check("test run finished without crashing", false, e?.stack ?? e);
+}
+try {
+  const log = execFileSync("adb", ["logcat", "-d", "-t", "3000"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  const keep = log
+    .split("\n")
+    .filter((l) => /captainayman|AndroidRuntime|ActivityTaskManager|ActivityManager|cr_|chromium|WebView|lowmemorykiller|Process .* died/i.test(l));
+  fs.writeFileSync(path.join(OUT, "logcat.txt"), keep.slice(-1500).join("\n"));
+} catch {
+  /* no logcat */
 }
 const crash = /FATAL EXCEPTION[\s\S]{0,2000}/.exec(execFileSync("adb", ["logcat", "-d", "-b", "crash"], { encoding: "utf8" }))?.[0];
 check("app did not crash", !crash, crash ?? "");
