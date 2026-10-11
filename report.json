@@ -1,0 +1,138 @@
+{
+  "passed": 22,
+  "failed": 0,
+  "results": [
+    {
+      "name": "control: a normal screenshot works on this phone",
+      "ok": true,
+      "soft": false,
+      "detail": "191259 bytes"
+    },
+    {
+      "name": "screenshot of the app is blocked (FLAG_SECURE)",
+      "ok": true,
+      "soft": false,
+      "detail": "the phone refused to capture the screen"
+    },
+    {
+      "name": "app window is marked secure",
+      "ok": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "name": "User-Agent carries the app mark",
+      "ok": true,
+      "soft": false,
+      "detail": "Mozilla/5.0 (Linux; Android 14; Android SDK built for x86_64 Build/UE1A.230829.036.A1; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/113.0.5672.136 Mobile Safari/537.36 CaptainAymanApp/1"
+    },
+    {
+      "name": "bridge is available to the page",
+      "ok": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "name": "client signs in and lands on the client area",
+      "ok": true,
+      "soft": false,
+      "detail": "http://10.0.2.2:3000/client"
+    },
+    {
+      "name": "name watermark is on the page",
+      "ok": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "name": "no service worker inside the app",
+      "ok": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "name": "one alarm per meal is scheduled (4 demo meals)",
+      "ok": true,
+      "soft": false,
+      "detail": "pending: 4"
+    },
+    {
+      "name": "the app is fully closed (no process left)",
+      "ok": true,
+      "soft": false,
+      "detail": ""
+    },
+    {
+      "name": "meal reminder arrives on time while the app is closed",
+      "ok": true,
+      "soft": false,
+      "detail": "scheduled for 17:45 Cairo"
+    },
+    {
+      "name": "tapping it reopens the app, still signed in, on the nutrition page",
+      "ok": true,
+      "soft": false,
+      "detail": "http://10.0.2.2:3000/client/nutrition"
+    },
+    {
+      "name": "page /client/nutrition opens in the app",
+      "ok": true,
+      "soft": false,
+      "detail": "http://10.0.2.2:3000/client/nutrition"
+    },
+    {
+      "name": "page /client/workout opens in the app",
+      "ok": true,
+      "soft": false,
+      "detail": "http://10.0.2.2:3000/client/workout"
+    },
+    {
+      "name": "page /client/progress opens in the app",
+      "ok": true,
+      "soft": false,
+      "detail": "http://10.0.2.2:3000/client/progress"
+    },
+    {
+      "name": "real meal schedule restored",
+      "ok": true,
+      "soft": false,
+      "detail": "pending: 4"
+    },
+    {
+      "name": "phone back button goes to the previous page",
+      "ok": true,
+      "soft": false,
+      "detail": "http://10.0.2.2:3000/client/workout"
+    },
+    {
+      "name": "/get-app recognises the app",
+      "ok": true,
+      "soft": false,
+      "detail": "إنت فاتح من التطبيق بالفعل."
+    },
+    {
+      "name": "offline screen shows without internet",
+      "ok": true,
+      "soft": true,
+      "detail": ""
+    },
+    {
+      "name": "“Try again” reloads once the internet is back",
+      "ok": true,
+      "soft": true,
+      "detail": ""
+    },
+    {
+      "name": "signing out clears the reminders",
+      "ok": true,
+      "soft": false,
+      "detail": "pending: 0"
+    },
+    {
+      "name": "app did not crash",
+      "ok": true,
+      "soft": false,
+      "detail": ""
+    }
+  ]
+}

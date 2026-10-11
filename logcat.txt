@@ -1,0 +1,248 @@
+10-11 14:43:43.088   514   549 I ActivityManager: Start proc 2128:com.android.messaging/u0a109 for broadcast {com.android.messaging/com.android.messaging.receiver.BootAndPackageReplacedReceiver}
+10-11 14:43:43.099   514   572 I ActivityManager: Killing 2083:com.android.intentresolver/u0a61 (adj 0): change com.android.intentresolver
+10-11 14:43:43.172   514   877 V ActivityManager: Got obituary of 2083:com.android.intentresolver
+10-11 14:43:43.298   514   549 I ActivityManager: Start proc 2148:com.android.nfc/1027 for broadcast {com.android.nfc/com.android.nfc.NfcBootCompletedReceiver}
+10-11 14:43:43.323   514  1564 W ActivityManager: finishReceiver: no app for android.os.BinderProxy@ccb2172
+10-11 14:43:43.478   514   549 W ActivityManager: Slow operation: 104ms so far, now at startProcess: returned from zygote!
+10-11 14:43:43.480   514   549 W ActivityManager: Slow operation: 106ms so far, now at startProcess: done updating battery stats
+10-11 14:43:43.480   514   549 W ActivityManager: Slow operation: 106ms so far, now at startProcess: building log message
+10-11 14:43:43.480   514   549 I ActivityManager: Start proc 2169:com.android.rkpdapp/u0a140 for broadcast {com.android.rkpdapp/com.android.rkpdapp.BootReceiver}
+10-11 14:43:43.480   514   549 W ActivityManager: Slow operation: 107ms so far, now at startProcess: starting to update pids map
+10-11 14:43:43.480   514   549 W ActivityManager: Slow operation: 107ms so far, now at startProcess: done updating pids map
+10-11 14:43:43.638   514   879 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 1027. pid: 2148
+10-11 14:43:43.647   514   548 I ActivityManager: com.android.shell is exempt from freezer
+10-11 14:43:43.657   514   549 I ActivityManager: Start proc 2197:com.android.shell/2000 for broadcast {com.android.shell/com.android.shell.HeapDumpReceiver}
+10-11 14:43:43.679   514   572 I ActivityManager: Killing 2148:com.android.nfc/1027 (adj 905): change com.android.nfc
+10-11 14:43:43.704   514   898 V ActivityManager: Got obituary of 2148:com.android.nfc
+10-11 14:43:43.752   514   730 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 10140. pid: 2169
+10-11 14:43:43.758   514   548 I ActivityManager: com.android.packageinstaller is exempt from freezer
+10-11 14:43:43.781   514   549 I ActivityManager: Start proc 2219:com.android.packageinstaller/u0a66 for broadcast {com.android.packageinstaller/com.android.packageinstaller.PackageInstalledReceiver}
+10-11 14:43:43.784   514   548 I ActivityManager: reportOnUserCompletedEvent(0): stored=10, eligible=111
+10-11 14:43:43.826   514  2222 D SystemServerTimingAsync: ssm.onCompletedEventUser-0_{|Unlocked|}_com.android.server.wm.ActivityTaskManagerService$Lifecycle
+10-11 14:43:43.826   514  2222 V SystemServerTimingAsync: ssm.onCompletedEventUser-0_{|Unlocked|}_com.android.server.wm.ActivityTaskManagerService$Lifecycle took to complete: 0ms
+10-11 14:43:43.826   514  2222 D SystemServerTimingAsync: ssm.onCompletedEventUser-0_{|Unlocked|}_com.android.server.am.ActivityManagerService$Lifecycle
+10-11 14:43:43.826   514  2222 V SystemServerTimingAsync: ssm.onCompletedEventUser-0_{|Unlocked|}_com.android.server.am.ActivityManagerService$Lifecycle took to complete: 0ms
+10-11 14:43:43.831   514  2223 D SystemServerTimingAsync: ssm.onCompletedEventUser-0_{|Unlocked|}_com.android.server.webkit.WebViewUpdateService
+10-11 14:43:43.831   514  2223 V SystemServerTimingAsync: ssm.onCompletedEventUser-0_{|Unlocked|}_com.android.server.webkit.WebViewUpdateService took to complete: 0ms
+10-11 14:43:43.881   514   538 I ActivityTaskManager: START u0 {act=android.intent.action.MAIN cat=[android.intent.category.HOME] flg=0x10000100 cmp=com.android.launcher3/.uioverrides.QuickstepLauncher (has extras)} with LAUNCH_SINGLE_TASK from uid 0 (BAL_ALLOW_ALLOWLISTED_UID) result code=3
+10-11 14:43:43.887   514   898 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 2000. pid: 2197
+10-11 14:43:43.951  1019  1019 D CarrierSvcBindHelper: onPackageAdded: com.captainayman.app
+10-11 14:43:43.964   514   730 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 10066. pid: 2219
+10-11 14:43:43.966  1019  1250 D ImsResolver: maybeAddedImsService, packageName: com.captainayman.app
+10-11 14:43:43.970  1019  1019 D CarrierSvcBindHelper: onPackageModified: com.captainayman.app
+10-11 14:43:43.978  1019  1250 D ImsResolver: maybeAddedImsService, packageName: com.captainayman.app
+10-11 14:43:44.009   514  1820 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 10109. pid: 2128
+10-11 14:43:44.032   514   537 I ActivityManager: Finished processing BOOT_COMPLETED for u0
+10-11 14:43:46.701   514   600 D ActivityManager: freezing 1526 com.android.music
+10-11 14:43:47.298   514   898 W ActivityTaskManager: callingPackage for (uid=2000, pid=2298) has no WPC
+10-11 14:43:47.320   514   898 V SplashScreenExceptionList: SplashScreen checking exception for package com.captainayman.app (target sdk:34) -> false
+10-11 14:43:47.324   514   898 I ActivityTaskManager: START u0 {flg=0x10000000 cmp=com.captainayman.app/.MainActivity} with LAUNCH_SINGLE_TASK from uid 2000 (BAL_ALLOW_PERMISSION) result code=0
+10-11 14:43:47.393   810   844 V WindowManagerShell: Transition requested: android.os.BinderProxy@a22e3cf TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=8 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=com.captainayman.app/.MainActivity } baseActivity=ComponentInfo{com.captainayman.app/com.captainayman.app.MainActivity} topActivity=ComponentInfo{com.captainayman.app/com.captainayman.app.MainActivity} origActivity=null realActivity=ComponentInfo{com.captainayman.app/com.captainayman.app.MainActivity} numActivities=1 lastActiveTime=56795 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{android.window.IWindowContainerToken$Stub$Proxy@35e415c} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=null topActivityInfo=ActivityInfo{340c65 com.captainayman.app.MainActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isSleeping=false topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= false topActivityLetterboxed= false isFromDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 locusId=null displayAreaFeatureId=1 cameraCompatControlState=hidden}, remoteTransition = null, displayChange = null }
+10-11 14:43:47.397   514   549 W ActivityManager: Slow operation: 71ms so far, now at startProcess: returned from zygote!
+10-11 14:43:47.401   514   549 W ActivityManager: Slow operation: 75ms so far, now at startProcess: done updating battery stats
+10-11 14:43:47.401   514   549 W ActivityManager: Slow operation: 75ms so far, now at startProcess: building log message
+10-11 14:43:47.401   514   549 I ActivityManager: Start proc 2302:com.captainayman.app/u0a141 for next-top-activity {com.captainayman.app/com.captainayman.app.MainActivity}
+10-11 14:43:47.401   514   549 W ActivityManager: Slow operation: 75ms so far, now at startProcess: starting to update pids map
+10-11 14:43:47.407   514   549 W ActivityManager: Slow operation: 81ms so far, now at startProcess: done updating pids map
+10-11 14:43:47.424   514   947 D CoreBackPreview: Window{36b6a0b u0 Splash Screen com.captainayman.app}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@e34b7f5, mPriority=0, mIsAnimationCallback=false}
+10-11 14:43:47.466   514   537 V WindowManager: Sent Transition #7 createdAt=10-11 14:43:47.309 via request=TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=8 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=com.captainayman.app/.MainActivity } baseActivity=ComponentInfo{com.captainayman.app/com.captainayman.app.MainActivity} topActivity=ComponentInfo{com.captainayman.app/com.captainayman.app.MainActivity} origActivity=null realActivity=ComponentInfo{com.captainayman.app/com.captainayman.app.MainActivity} numActivities=1 lastActiveTime=56795 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{RemoteToken{c0c5456 Task{9a26e1e #8 type=standard A=10141:com.captainayman.app}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=null topActivityInfo=ActivityInfo{3764cd7 com.captainayman.app.MainActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isSleeping=false topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= false topActivityLetterboxed= false isFromDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 locusId=null displayAreaFeatureId=1 cameraCompatControlState=hidden}, remoteTransition = null, displayChange = null }
+10-11 14:43:47.467   514   537 V WindowManager:     info={id=7 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{RemoteToken{c0c5456 Task{9a26e1e #8 type=standard A=10141:com.captainayman.app}}} m=OPEN f=NONE leash=Surface(name=Task=8)/@0x8fd298a sb=Rect(0, 0 - 320, 640) eb=Rect(0, 0 - 320, 640) d=0},{WCT{RemoteToken{a1269c4 Task{3413a27 #1 type=home}}} m=TO_BACK f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0x68678e sb=Rect(0, 0 - 320, 640) eb=Rect(0, 0 - 320, 640) d=0}]}
+10-11 14:43:47.497   514   600 D ActivityManager: freezing 1532 com.android.sdksetup
+10-11 14:43:47.755  2302  2302 W ziparchive: Unable to open '/data/app/~~SjjWt9GxjpDHu4Zr_CQ6GQ==/com.captainayman.app-k_zq32Xf_p_DT6Hxm2gQ-Q==/base.dm': No such file or directory
+10-11 14:43:47.755  2302  2302 W ziparchive: Unable to open '/data/app/~~SjjWt9GxjpDHu4Zr_CQ6GQ==/com.captainayman.app-k_zq32Xf_p_DT6Hxm2gQ-Q==/base.dm': No such file or directory
+10-11 14:43:47.756  2302  2302 D nativeloader: Configuring clns-6 for other apk /data/app/~~SjjWt9GxjpDHu4Zr_CQ6GQ==/com.captainayman.app-k_zq32Xf_p_DT6Hxm2gQ-Q==/base.apk. target_sdk_version=34, uses_libraries=, library_path=/data/app/~~SjjWt9GxjpDHu4Zr_CQ6GQ==/com.captainayman.app-k_zq32Xf_p_DT6Hxm2gQ-Q==/lib/x86_64, permitted_path=/data:/mnt/expand:/data/user/0/com.captainayman.app
+10-11 14:43:47.768  2302  2302 V GraphicsEnvironment: ANGLE GameManagerService for com.captainayman.app: false
+10-11 14:43:47.768  2302  2302 V GraphicsEnvironment: com.captainayman.app is not listed in per-application setting
+10-11 14:43:47.773   514  1837 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 10141. pid: 2302
+10-11 14:43:47.798  2302  2302 I WebViewFactory: Loading com.android.webview version 113.0.5672.136 (code 567263606)
+10-11 14:43:47.805  2302  2302 D nativeloader: Configuring product-clns-7 for unbundled product apk /product/app/webview/webview.apk. target_sdk_version=34, uses_libraries=, library_path=/product/app/webview/lib/x86_64:/product/app/webview/webview.apk!/lib/x86_64:/product/lib64:/system/product/lib64, permitted_path=/data:/mnt/expand:/product/lib64:/system/product/lib64
+10-11 14:43:47.896  2302  2302 I cr_WVCFactoryProvider: Loaded version=113.0.5672.136 minSdkVersion=1 isBundle=false multiprocess=true packageId=2
+10-11 14:43:47.967  2302  2334 I cr_VariationsUtils: Failed reading seed file "/data/user/0/com.captainayman.app/app_webview/variations_seed_new"
+10-11 14:43:47.967  2302  2334 I cr_VariationsUtils: Failed reading seed file "/data/user/0/com.captainayman.app/app_webview/variations_seed"
+10-11 14:43:47.968  2302  2334 I cr_VariationsUtils: Requesting new seed from IVariationsSeedServer
+10-11 14:43:47.985  2302  2302 I cr_LibraryLoader: Successfully loaded native library
+10-11 14:43:47.986  2302  2302 I cr_CachingUmaRecorder: Flushed 8 samples from 8 histograms.
+10-11 14:43:48.006   514   549 I ActivityManager: Start proc 2341:com.android.webview:webview_service/u0a105 for service {com.android.webview/org.chromium.android_webview.services.VariationsSeedServer}
+10-11 14:43:48.044  2341  2341 I webview_service: Using CollectorTypeCC GC.
+10-11 14:43:48.046  2341  2341 W webview_service: Unexpected CPU variant for x86: x86_64.
+10-11 14:43:48.046  2341  2341 W webview_service: Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, tremont, kabylake, default
+10-11 14:43:48.051  2341  2341 E webview_service: Not starting debugger since process cannot load the jdwp agent.
+10-11 14:43:48.089  2341  2341 D nativeloader: Configuring product-clns-6 for unbundled product apk /product/app/webview/webview.apk. target_sdk_version=34, uses_libraries=, library_path=/product/app/webview/lib/x86_64:/product/app/webview/webview.apk!/lib/x86_64:/product/lib64:/system/product/lib64, permitted_path=/data:/mnt/expand:/data/user/0/com.android.webview:/product/lib64:/system/product/lib64
+10-11 14:43:48.162  2341  2341 V GraphicsEnvironment: ANGLE GameManagerService for com.android.webview: false
+10-11 14:43:48.162  2341  2341 V GraphicsEnvironment: com.android.webview is not listed in per-application setting
+10-11 14:43:48.164  2302  2358 W chromium: [WARNING:dns_config_service_android.cc(115)] Failed to read DnsConfig.
+10-11 14:43:48.180  2341  2341 I cr_WebViewApkApp: Launched version=113.0.5672.136 minSdkVersion=1 isBundle=false processName=com.android.webview:webview_service
+10-11 14:43:48.221   514   549 W ActivityManager: Slow operation: 145ms so far, now at startProcess: returned from zygote!
+10-11 14:43:48.222   514   549 W ActivityManager: Slow operation: 145ms so far, now at startProcess: done updating battery stats
+10-11 14:43:48.222   514   549 W ActivityManager: Slow operation: 145ms so far, now at startProcess: building log message
+10-11 14:43:48.222   514   549 I ActivityManager: Start proc 2373:com.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0ai9000 for  {com.captainayman.app/org.chromium.content.app.SandboxedProcessService0:0}
+10-11 14:43:48.222   514   549 W ActivityManager: Slow operation: 145ms so far, now at startProcess: starting to update pids map
+10-11 14:43:48.224   514   549 W ActivityManager: Slow operation: 147ms so far, now at startProcess: done updating pids map
+10-11 14:43:48.274   514  1820 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 10105. pid: 2341
+10-11 14:43:48.308  2373  2373 I cr_WebViewApkApp: Launched version=113.0.5672.136 minSdkVersion=1 isBundle=false processName=com.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0
+10-11 14:43:48.308   514  1820 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 99000. pid: 2373
+10-11 14:43:48.336  2373  2373 I cr_ChildProcessService: Creating new ChildProcessService pid=2373
+10-11 14:43:48.386  2302  2365 W cr_media: BLUETOOTH_CONNECT permission is missing.
+10-11 14:43:48.400  2302  2365 W cr_media: registerBluetoothIntentsIfNeeded: Requires BLUETOOTH permission
+10-11 14:43:48.529  2341  2416 I cr_VariationsUtils: Scheduling seed download job
+10-11 14:43:48.530   514   549 W ActivityManager: Slow operation: 58ms so far, now at startProcess: returned from zygote!
+10-11 14:43:48.530   514   549 W ActivityManager: Slow operation: 58ms so far, now at startProcess: done updating battery stats
+10-11 14:43:48.531   514   549 W ActivityManager: Slow operation: 58ms so far, now at startProcess: building log message
+10-11 14:43:48.531   514   549 I ActivityManager: Start proc 2418:com.android.webview:webview_apk/u0a105 for service {com.android.webview/org.chromium.android_webview.nonembedded.AwComponentUpdateService}
+10-11 14:43:48.531   514   549 W ActivityManager: Slow operation: 58ms so far, now at startProcess: starting to update pids map
+10-11 14:43:48.531   514   549 W ActivityManager: Slow operation: 58ms so far, now at startProcess: done updating pids map
+10-11 14:43:48.542  2418  2418 I iew:webview_apk: Using CollectorTypeCC GC.
+10-11 14:43:48.543  2418  2418 W iew:webview_apk: Unexpected CPU variant for x86: x86_64.
+10-11 14:43:48.543  2418  2418 W iew:webview_apk: Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, tremont, kabylake, default
+10-11 14:43:48.549   514  1519 D CoreBackPreview: Window{3fa2a13 u0 com.captainayman.app/com.captainayman.app.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@802ea7b, mPriority=0, mIsAnimationCallback=false}
+10-11 14:43:48.552  2418  2418 E iew:webview_apk: Not starting debugger since process cannot load the jdwp agent.
+10-11 14:43:48.553  2341  2369 I cr_VariationsUtils: Downloading new seed
+10-11 14:43:48.560  2373  2391 I cr_LibraryLoader: Successfully loaded native library
+10-11 14:43:48.560  2373  2391 I cr_CachingUmaRecorder: Flushed 2 samples from 2 histograms.
+10-11 14:43:48.650  2418  2418 D nativeloader: Configuring product-clns-6 for unbundled product apk /product/app/webview/webview.apk. target_sdk_version=34, uses_libraries=, library_path=/product/app/webview/lib/x86_64:/product/app/webview/webview.apk!/lib/x86_64:/product/lib64:/system/product/lib64, permitted_path=/data:/mnt/expand:/data/user/0/com.android.webview:/product/lib64:/system/product/lib64
+10-11 14:43:48.679  2418  2418 V GraphicsEnvironment: ANGLE GameManagerService for com.android.webview: false
+10-11 14:43:48.679  2418  2418 V GraphicsEnvironment: com.android.webview is not listed in per-application setting
+10-11 14:43:48.681  2418  2418 I cr_WebViewApkApp: Launched version=113.0.5672.136 minSdkVersion=1 isBundle=false processName=com.android.webview:webview_apk
+10-11 14:43:48.733   514   587 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 10105. pid: 2418
+10-11 14:43:48.771   514   600 D ActivityManager: freezing 1790 com.android.quicksearchbox
+10-11 14:43:48.869  2302  2389 W chromium: [WARNING:display_webview.cc(32)] WebView overlays are enabled!
+10-11 14:43:49.073  2418  2418 I cr_LibraryLoader: Successfully loaded native library
+10-11 14:43:49.302  2341  2369 I cr_VariationsSeedFetch: Fetched first run seed in 750 ms
+10-11 14:43:49.389   514   537 W ziparchive: Unable to open '/data/app/~~SjjWt9GxjpDHu4Zr_CQ6GQ==/com.captainayman.app-k_zq32Xf_p_DT6Hxm2gQ-Q==/base.dm': No such file or directory
+10-11 14:43:49.391   514   537 I ActivityTaskManager: Displayed com.captainayman.app/.MainActivity for user 0: +2s78ms
+10-11 14:43:49.432   514  1820 W InputManager-JNI: Input channel object '36b6a0b Splash Screen com.captainayman.app (client)' was disposed without first being removed with the input manager!
+10-11 14:43:49.432   514   730 D CoreBackPreview: Window{36b6a0b u0 Splash Screen com.captainayman.app EXITING}: Setting back callback null
+10-11 14:43:49.441   514   730 I ImeTracker: com.captainayman.app:104f9cd1: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_UNSPECIFIED_WINDOW
+10-11 14:43:49.441   514   730 I ImeTracker: com.captainayman.app:104f9cd1: onCancelled at PHASE_SERVER_SHOULD_HIDE
+10-11 14:43:49.615   514   600 D ActivityManager: freezing 1361 com.android.carrierconfig
+10-11 14:43:49.933  2302  2302 I chromium: [INFO:CONSOLE(0)] "Error with Permissions-Policy header: Unrecognized feature: 'payment'.", source:  (0)
+10-11 14:43:49.933  2302  2302 I chromium: [INFO:CONSOLE(0)] "Error with Permissions-Policy header: Unrecognized feature: 'usb'.", source:  (0)
+10-11 14:43:52.110   514   600 D ActivityManager: freezing 1560 com.android.printspooler
+10-11 14:43:52.783   514   600 D ActivityManager: freezing 1201 com.android.cellbroadcastreceiver
+10-11 14:43:54.247   514   600 D ActivityManager: freezing 1654 com.android.carrierdefaultapp
+10-11 14:43:58.147  2373  2391 W chromium: [WARNING:autofill_agent.cc(886)] Autofill suggestions are disabled because the document isn't a secure context.
+10-11 14:43:58.181  2373  2391 W chromium: [WARNING:autofill_agent.cc(886)] Autofill suggestions are disabled because the document isn't a secure context.
+10-11 14:43:58.185  2302  2302 I ImeTracker: com.captainayman.app:3a87554f: onRequestShow at ORIGIN_CLIENT_SHOW_SOFT_INPUT reason SHOW_SOFT_INPUT
+10-11 14:43:58.185  2302  2302 I ImeTracker: com.captainayman.app:3a87554f: onFailed at PHASE_CLIENT_VIEW_SERVED
+10-11 14:43:58.185  2302  2302 W InputMethodManager: Ignoring showSoftInput() as view=android.webkit.WebView{48a81a3 VFEDHVC.. ........ 0,0-320,616 #7f030002 app:id/web} is not served.
+10-11 14:43:58.220  2373  2391 W chromium: [WARNING:autofill_agent.cc(886)] Autofill suggestions are disabled because the document isn't a secure context.
+10-11 14:43:59.386   514   600 D ActivityManager: freezing 2418 com.android.webview:webview_apk
+10-11 14:43:59.937   514   600 D ActivityManager: freezing 1653 com.android.externalstorage
+10-11 14:44:03.049   514   538 I ActivityTaskManager: START u0 {act=android.intent.action.MAIN cat=[android.intent.category.HOME] flg=0x10000100 cmp=com.android.launcher3/.uioverrides.QuickstepLauncher (has extras)} with LAUNCH_SINGLE_TASK from uid 0 (BAL_ALLOW_ALLOWLISTED_UID) result code=2
+10-11 14:44:03.371   514   537 V WindowManager:     info={id=8 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{RemoteToken{a1269c4 Task{3413a27 #1 type=home}}} m=TO_FRONT f=SHOW_WALLPAPER|MOVE_TO_TOP leash=Surface(name=Task=1)/@0x68678e sb=Rect(0, 0 - 320, 640) eb=Rect(0, 0 - 320, 640) d=0},{WCT{RemoteToken{c0c5456 Task{9a26e1e #8 type=standard A=10141:com.captainayman.app}}} m=TO_BACK f=NONE leash=Surface(name=Task=8)/@0x8fd298a sb=Rect(0, 0 - 320, 640) eb=Rect(0, 0 - 320, 640) d=0},{null m=TO_FRONT f=IS_WALLPAPER leash=Surface(name=WallpaperWindowToken{b975bd6 token=android.os.Binder@22253f1})/@0xeebf50 sb=Rect(0, 0 - 320, 640) eb=Rect(0, 0 - 320, 640) d=0}]}
+10-11 14:44:05.073   514  1564 I ActivityManager: Killing 2302:com.captainayman.app/u0a141 (adj 700): kill background
+10-11 14:44:05.078   514  1564 I ActivityManager: Killing 2373:com.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0a141i0 (adj 0): isolated not needed
+10-11 14:44:05.084   514   547 W UsageStatsService: Unexpected activity event reported! (com.captainayman.app/com.captainayman.app.MainActivity event : 23 instanceId : 15349503)
+10-11 14:44:05.112   514  1837 I WindowManager: WIN DEATH: Window{3fa2a13 u0 com.captainayman.app/com.captainayman.app.MainActivity}
+10-11 14:44:05.113   514  1837 W InputManager-JNI: Input channel object '3fa2a13 com.captainayman.app/com.captainayman.app.MainActivity (client)' was disposed without first being removed with the input manager!
+10-11 14:44:05.129   514  1564 V ActivityManager: Got obituary of 2302:com.captainayman.app
+10-11 14:44:05.132   514   540 W ActivityManager: setHasOverlayUi called on unknown pid: 2302
+10-11 14:44:06.257   514   600 D ActivityManager: freezing 1517 com.android.documentsui
+10-11 14:44:09.355   514   600 D ActivityManager: freezing 1871 com.android.traceur
+10-11 14:44:10.471   514   600 D ActivityManager: freezing 1177 com.android.cellbroadcastreceiver.module
+10-11 14:44:11.469   514   600 D ActivityManager: freezing 1957 com.android.camera2
+10-11 14:44:11.469   514   600 D ActivityManager: freezing 1926 com.android.calendar
+10-11 14:44:12.269   514   600 D ActivityManager: freezing 2023 com.android.contacts
+10-11 14:44:12.315   514   600 D ActivityManager: freezing 1988 com.android.imsserviceentitlement
+10-11 14:44:12.326   514   600 D ActivityManager: freezing 1762 com.android.providers.calendar
+10-11 14:44:12.437   514   600 D ActivityManager: freezing 1023 com.android.settings
+10-11 14:44:12.437   514   600 D ActivityManager: freezing 2061 com.android.dynsystem:dynsystem
+10-11 14:44:12.438   514   600 D ActivityManager: freezing 2035 com.android.dynsystem
+10-11 14:44:12.438   514   600 D ActivityManager: freezing 1878 com.android.localtransport
+10-11 14:44:12.438   514   600 D ActivityManager: freezing 1587 com.android.keychain
+10-11 14:44:12.882   514   600 D ActivityManager: freezing 2056 com.android.statementservice
+10-11 14:44:13.296   514   600 D ActivityManager: freezing 2128 com.android.messaging
+10-11 14:44:13.527   514   600 D ActivityManager: freezing 2169 com.android.rkpdapp
+10-11 14:44:15.084   514   600 D ActivityManager: freezing 2341 com.android.webview:webview_service
+10-11 14:44:20.158   514   600 D ActivityManager: freezing 812 com.android.permissioncontroller
+10-11 14:44:27.169   514   794 D ActivityManager: sync unfroze 812 com.android.permissioncontroller for 6
+10-11 14:44:47.249   514   600 D ActivityManager: freezing 812 com.android.permissioncontroller
+10-11 14:45:00.012   514   549 I ActivityManager: Start proc 3116:com.captainayman.app/u0a141 for broadcast {com.captainayman.app/com.captainayman.app.ReminderReceiver}
+10-11 14:45:00.064  3116  3116 W ziparchive: Unable to open '/data/app/~~SjjWt9GxjpDHu4Zr_CQ6GQ==/com.captainayman.app-k_zq32Xf_p_DT6Hxm2gQ-Q==/base.dm': No such file or directory
+10-11 14:45:00.064  3116  3116 W ziparchive: Unable to open '/data/app/~~SjjWt9GxjpDHu4Zr_CQ6GQ==/com.captainayman.app-k_zq32Xf_p_DT6Hxm2gQ-Q==/base.dm': No such file or directory
+10-11 14:45:00.065  3116  3116 D nativeloader: Configuring clns-6 for other apk /data/app/~~SjjWt9GxjpDHu4Zr_CQ6GQ==/com.captainayman.app-k_zq32Xf_p_DT6Hxm2gQ-Q==/base.apk. target_sdk_version=34, uses_libraries=, library_path=/data/app/~~SjjWt9GxjpDHu4Zr_CQ6GQ==/com.captainayman.app-k_zq32Xf_p_DT6Hxm2gQ-Q==/lib/x86_64, permitted_path=/data:/mnt/expand:/data/user/0/com.captainayman.app
+10-11 14:45:00.076  3116  3116 V GraphicsEnvironment: ANGLE GameManagerService for com.captainayman.app: false
+10-11 14:45:00.076  3116  3116 V GraphicsEnvironment: com.captainayman.app is not listed in per-application setting
+10-11 14:45:00.078   514   530 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 10141. pid: 3116
+10-11 14:45:04.060  3204  3204 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-11 14:45:04.064  3204  3204 I AndroidRuntime: Using default boot image
+10-11 14:45:04.064  3204  3204 I AndroidRuntime: Leaving lock profiling enabled
+10-11 14:45:04.132  3204  3204 D nativeloader: InitDefaultPublicLibraries for_preload=1: libandroid.so:libaaudio.so:libamidi.so:libbinder_ndk.so:libc.so:libcamera2ndk.so:libdl.so:libEGL.so:libGLESv1_CM.so:libGLESv2.so:libGLESv3.so:libicu.so:libicui18n.so:libicuuc.so:libjnigraphics.so:liblog.so:libmediandk.so:libm.so:libnativehelper.so:libnativewindow.so:libOpenMAXAL.so:libOpenSLES.so:libRS.so:libstdc++.so:libsync.so:libvulkan.so:libwebviewchromium_plat_support.so:libz.so
+10-11 14:45:04.170  3204  3204 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-11 14:45:05.247  3204  3204 D AndroidRuntime: Shutting down VM
+10-11 14:45:06.152   514   530 V SplashScreenExceptionList: SplashScreen checking exception for package com.captainayman.app (target sdk:34) -> false
+10-11 14:45:06.153   810   844 V WindowManagerShell: Transition requested: android.os.BinderProxy@93856ff TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=8 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=com.captainayman.app/.MainActivity } baseActivity=ComponentInfo{com.captainayman.app/com.captainayman.app.MainActivity} topActivity=ComponentInfo{com.captainayman.app/com.captainayman.app.MainActivity} origActivity=null realActivity=ComponentInfo{com.captainayman.app/com.captainayman.app.MainActivity} numActivities=1 lastActiveTime=72509 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{android.window.IWindowContainerToken$Stub$Proxy@fb8eccc} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=null topActivityInfo=ActivityInfo{bab2b15 com.captainayman.app.MainActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=true isVisible=false isVisibleRequested=false isSleeping=false topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= false topActivityLetterboxed= false isFromDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 locusId=null displayAreaFeatureId=1 cameraCompatControlState=hidden}, remoteTransition = RemoteTransition { remoteTransition = com.android.systemui.shared.system.RemoteAnimationRunnerCompat$1@63fee2a, appThread = null, debugName = SysUILaunch }, displayChange = null }
+10-11 14:45:06.154   514   530 I ActivityTaskManager: START u0 {flg=0x14000000 cmp=com.captainayman.app/.MainActivity (has extras)} with LAUNCH_SINGLE_TASK from uid 10141 (realCallingUid=10118) (BAL_ALLOW_PENDING_INTENT) result code=2
+10-11 14:45:06.156   810   844 D WindowManagerShell: onActivityRestartAttempt: ComponentInfo{com.captainayman.app/com.captainayman.app.MainActivity}
+10-11 14:45:06.181   514  2656 D CoreBackPreview: Window{914cd89 u0 Splash Screen com.captainayman.app}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@1f3b945, mPriority=0, mIsAnimationCallback=false}
+10-11 14:45:06.198  3116  3116 I WebViewFactory: Loading com.android.webview version 113.0.5672.136 (code 567263606)
+10-11 14:45:06.208  3116  3116 D nativeloader: Configuring product-clns-7 for unbundled product apk /product/app/webview/webview.apk. target_sdk_version=34, uses_libraries=, library_path=/product/app/webview/lib/x86_64:/product/app/webview/webview.apk!/lib/x86_64:/product/lib64:/system/product/lib64, permitted_path=/data:/mnt/expand:/product/lib64:/system/product/lib64
+10-11 14:45:06.209   514   537 V WindowManager: Sent Transition #9 createdAt=10-11 14:45:06.150 via request=TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=8 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=com.captainayman.app/.MainActivity } baseActivity=ComponentInfo{com.captainayman.app/com.captainayman.app.MainActivity} topActivity=ComponentInfo{com.captainayman.app/com.captainayman.app.MainActivity} origActivity=null realActivity=ComponentInfo{com.captainayman.app/com.captainayman.app.MainActivity} numActivities=1 lastActiveTime=72509 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{RemoteToken{c0c5456 Task{9a26e1e #8 type=standard A=10141:com.captainayman.app}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=null topActivityInfo=ActivityInfo{3764cd7 com.captainayman.app.MainActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=true isVisible=false isVisibleRequested=false isSleeping=false topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= false topActivityLetterboxed= false isFromDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 locusId=null displayAreaFeatureId=1 cameraCompatControlState=hidden}, remoteTransition = RemoteTransition { remoteTransition = android.window.IRemoteTransition$Stub$Proxy@c3e2466, appThread = null, debugName = SysUILaunch }, displayChange = null }
+10-11 14:45:06.209   514   537 V WindowManager:     info={id=9 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{RemoteToken{c0c5456 Task{9a26e1e #8 type=standard A=10141:com.captainayman.app}}} m=TO_FRONT f=MOVE_TO_TOP leash=Surface(name=Task=8)/@0x8fd298a sb=Rect(0, 0 - 320, 640) eb=Rect(0, 0 - 320, 640) d=0},{WCT{RemoteToken{a1269c4 Task{3413a27 #1 type=home}}} m=TO_BACK f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0x68678e sb=Rect(0, 0 - 320, 640) eb=Rect(0, 0 - 320, 640) d=0}]}
+10-11 14:45:06.399  3116  3116 I cr_WVCFactoryProvider: Loaded version=113.0.5672.136 minSdkVersion=1 isBundle=false multiprocess=true packageId=2
+10-11 14:45:06.410  3116  3116 I cr_LibraryLoader: Successfully loaded native library
+10-11 14:45:06.411  3116  3116 I cr_CachingUmaRecorder: Flushed 8 samples from 8 histograms.
+10-11 14:45:06.417  3116  3243 I cr_VariationsUtils: Failed reading seed file "/data/user/0/com.captainayman.app/app_webview/variations_seed_new"
+10-11 14:45:06.417  3116  3243 I cr_VariationsUtils: Failed reading seed file "/data/user/0/com.captainayman.app/app_webview/variations_seed"
+10-11 14:45:06.458   514   549 I ActivityManager: Start proc 3245:com.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0i1 for  {com.captainayman.app/org.chromium.content.app.SandboxedProcessService0:0}
+10-11 14:45:06.461  3116  3247 W chromium: [WARNING:dns_config_service_android.cc(115)] Failed to read DnsConfig.
+10-11 14:45:06.472  3245  3245 I cr_WebViewApkApp: Launched version=113.0.5672.136 minSdkVersion=1 isBundle=false processName=com.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0
+10-11 14:45:06.473   514  2656 I ActivityManager: Flag disabled. Ignoring finishAttachApplication from uid: 99001. pid: 3245
+10-11 14:45:06.474  3245  3245 I cr_ChildProcessService: Creating new ChildProcessService pid=3245
+10-11 14:45:06.517   514  1763 D ActivityManager: sync unfroze 2341 com.android.webview:webview_service for 6
+10-11 14:45:06.584  3116  3264 W cr_media: BLUETOOTH_CONNECT permission is missing.
+10-11 14:45:06.591  3116  3264 W cr_media: registerBluetoothIntentsIfNeeded: Requires BLUETOOTH permission
+10-11 14:45:06.632  3245  3271 I cr_LibraryLoader: Successfully loaded native library
+10-11 14:45:06.632  3245  3271 I cr_CachingUmaRecorder: Flushed 2 samples from 2 histograms.
+10-11 14:45:06.666   514  1763 D CoreBackPreview: Window{4a4f8b9 u0 com.captainayman.app/com.captainayman.app.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@3d73998, mPriority=0, mIsAnimationCallback=false}
+10-11 14:45:06.866  3116  3278 W chromium: [WARNING:display_webview.cc(32)] WebView overlays are enabled!
+10-11 14:45:07.159   514   537 W ziparchive: Unable to open '/data/app/~~SjjWt9GxjpDHu4Zr_CQ6GQ==/com.captainayman.app-k_zq32Xf_p_DT6Hxm2gQ-Q==/base.dm': No such file or directory
+10-11 14:45:07.163   514   537 I ActivityTaskManager: Displayed com.captainayman.app/.MainActivity for user 0: +1s23ms
+10-11 14:45:07.202   514  2656 D CoreBackPreview: Window{914cd89 u0 Splash Screen com.captainayman.app EXITING}: Setting back callback null
+10-11 14:45:07.203   514  1763 W InputManager-JNI: Input channel object '914cd89 Splash Screen com.captainayman.app (client)' was disposed without first being removed with the input manager!
+10-11 14:45:07.267   514  1763 I ImeTracker: com.captainayman.app:24979235: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_UNSPECIFIED_WINDOW
+10-11 14:45:07.267   514  1763 I ImeTracker: com.captainayman.app:24979235: onCancelled at PHASE_SERVER_SHOULD_HIDE
+10-11 14:45:07.366  3116  3116 I chromium: [INFO:CONSOLE(0)] "Error with Permissions-Policy header: Unrecognized feature: 'payment'.", source:  (0)
+10-11 14:45:07.366  3116  3116 I chromium: [INFO:CONSOLE(0)] "Error with Permissions-Policy header: Unrecognized feature: 'usb'.", source:  (0)
+10-11 14:45:10.074   514   600 D ActivityManager: freezing 1390 android.process.acore
+10-11 14:45:10.075   514   600 D ActivityManager: freezing 1785 android.process.media
+10-11 14:45:13.222  3116  3116 I chromium: [INFO:CONSOLE(0)] "Error with Permissions-Policy header: Unrecognized feature: 'payment'.", source:  (0)
+10-11 14:45:13.224  3116  3116 I chromium: [INFO:CONSOLE(0)] "Error with Permissions-Policy header: Unrecognized feature: 'usb'.", source:  (0)
+10-11 14:45:15.014  3116  3116 I chromium: [INFO:CONSOLE(0)] "Error with Permissions-Policy header: Unrecognized feature: 'payment'.", source:  (0)
+10-11 14:45:15.015  3116  3116 I chromium: [INFO:CONSOLE(0)] "Error with Permissions-Policy header: Unrecognized feature: 'usb'.", source:  (0)
+10-11 14:45:18.854  3116  3116 I chromium: [INFO:CONSOLE(0)] "Error with Permissions-Policy header: Unrecognized feature: 'payment'.", source:  (0)
+10-11 14:45:18.854  3116  3116 I chromium: [INFO:CONSOLE(0)] "Error with Permissions-Policy header: Unrecognized feature: 'usb'.", source:  (0)
+10-11 14:45:22.980  3116  3116 I chromium: [INFO:CONSOLE(0)] "Error with Permissions-Policy header: Unrecognized feature: 'payment'.", source:  (0)
+10-11 14:45:22.984  3116  3116 I chromium: [INFO:CONSOLE(0)] "Error with Permissions-Policy header: Unrecognized feature: 'usb'.", source:  (0)
+10-11 14:45:24.249  3116  3116 I chromium: [INFO:CONSOLE(0)] "Error with Permissions-Policy header: Unrecognized feature: 'payment'.", source:  (0)
+10-11 14:45:24.249  3116  3116 I chromium: [INFO:CONSOLE(0)] "Error with Permissions-Policy header: Unrecognized feature: 'usb'.", source:  (0)
+10-11 14:45:24.898   514   548 D ActivityManager: sync unfroze 1654 com.android.carrierdefaultapp for 3
+10-11 14:45:28.068  3490  3490 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-11 14:45:28.073  3490  3490 I AndroidRuntime: Using default boot image
+10-11 14:45:28.074  3490  3490 I AndroidRuntime: Leaving lock profiling enabled
+10-11 14:45:28.178  3490  3490 D nativeloader: InitDefaultPublicLibraries for_preload=1: libandroid.so:libaaudio.so:libamidi.so:libbinder_ndk.so:libc.so:libcamera2ndk.so:libdl.so:libEGL.so:libGLESv1_CM.so:libGLESv2.so:libGLESv3.so:libicu.so:libicui18n.so:libicuuc.so:libjnigraphics.so:liblog.so:libmediandk.so:libm.so:libnativehelper.so:libnativewindow.so:libOpenMAXAL.so:libOpenSLES.so:libRS.so:libstdc++.so:libsync.so:libvulkan.so:libwebviewchromium_plat_support.so:libz.so
+10-11 14:45:28.271  3490  3490 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-11 14:45:29.423  3490  3490 D AndroidRuntime: Shutting down VM
+10-11 14:45:34.985   514   600 D ActivityManager: freezing 1654 com.android.carrierdefaultapp
+10-11 14:45:36.385  3600  3600 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-11 14:45:36.389  3600  3600 I AndroidRuntime: Using default boot image
+10-11 14:45:36.389  3600  3600 I AndroidRuntime: Leaving lock profiling enabled
+10-11 14:45:36.438  3600  3600 D nativeloader: InitDefaultPublicLibraries for_preload=1: libandroid.so:libaaudio.so:libamidi.so:libbinder_ndk.so:libc.so:libcamera2ndk.so:libdl.so:libEGL.so:libGLESv1_CM.so:libGLESv2.so:libGLESv3.so:libicu.so:libicui18n.so:libicuuc.so:libjnigraphics.so:liblog.so:libmediandk.so:libm.so:libnativehelper.so:libnativewindow.so:libOpenMAXAL.so:libOpenSLES.so:libRS.so:libstdc++.so:libsync.so:libvulkan.so:libwebviewchromium_plat_support.so:libz.so
+10-11 14:45:36.466  3600  3600 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-11 14:45:37.492  3600  3600 D AndroidRuntime: Shutting down VM
+10-11 14:45:38.575  3623  3623 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-11 14:45:38.581  3623  3623 I AndroidRuntime: Using default boot image
+10-11 14:45:38.581  3623  3623 I AndroidRuntime: Leaving lock profiling enabled
+10-11 14:45:38.658  3623  3623 D nativeloader: InitDefaultPublicLibraries for_preload=1: libandroid.so:libaaudio.so:libamidi.so:libbinder_ndk.so:libc.so:libcamera2ndk.so:libdl.so:libEGL.so:libGLESv1_CM.so:libGLESv2.so:libGLESv3.so:libicu.so:libicui18n.so:libicuuc.so:libjnigraphics.so:liblog.so:libmediandk.so:libm.so:libnativehelper.so:libnativewindow.so:libOpenMAXAL.so:libOpenSLES.so:libRS.so:libstdc++.so:libsync.so:libvulkan.so:libwebviewchromium_plat_support.so:libz.so
+10-11 14:45:38.715  3623  3623 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-11 14:45:38.900  3116  3116 I chromium: [INFO:CONSOLE(0)] "Error with Permissions-Policy header: Unrecognized feature: 'payment'.", source:  (0)
+10-11 14:45:38.901  3116  3116 I chromium: [INFO:CONSOLE(0)] "Error with Permissions-Policy header: Unrecognized feature: 'usb'.", source:  (0)
+10-11 14:45:41.554  3623  3623 D AndroidRuntime: Shutting down VM
+10-11 14:45:42.558   514   899 W ActivityTaskManager: callingPackage for (uid=2000, pid=3654) has no WPC
+10-11 14:45:42.562   810   844 D WindowManagerShell: onActivityRestartAttempt: ComponentInfo{com.captainayman.app/com.captainayman.app.MainActivity}
+10-11 14:45:42.562   514   899 I ActivityTaskManager: START u0 {flg=0x10000000 cmp=com.captainayman.app/.MainActivity} with LAUNCH_SINGLE_TASK from uid 2000 (BAL_ALLOW_PERMISSION) result code=3
+10-11 14:45:44.621  3116  3116 I chromium: [INFO:CONSOLE(0)] "Error with Permissions-Policy header: Unrecognized feature: 'payment'.", source:  (0)
+10-11 14:45:44.621  3116  3116 I chromium: [INFO:CONSOLE(0)] "Error with Permissions-Policy header: Unrecognized feature: 'usb'.", source:  (0)
+10-11 14:45:46.075  3245  3271 W chromium: [WARNING:autofill_agent.cc(886)] Autofill suggestions are disabled because the document isn't a secure context.
+10-11 14:45:46.191  3116  3116 I ImeTracker: com.captainayman.app:de97ae87: onRequestShow at ORIGIN_CLIENT_SHOW_SOFT_INPUT reason SHOW_SOFT_INPUT
+10-11 14:45:46.192  3116  3116 D InputMethodManager: showSoftInput() view=android.webkit.WebView{639382b VFEDHVC.. .F...... 0,0-320,616 #7f030002 app:id/web aid=1073741824} flags=0 reason=SHOW_SOFT_INPUT
