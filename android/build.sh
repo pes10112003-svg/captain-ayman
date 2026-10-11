@@ -7,7 +7,8 @@ cd "$(dirname "$0")"
 API=34
 BUILD_TOOLS=34.0.0
 SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:?Android SDK not found}}"
-yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" "platforms;android-$API" "build-tools;$BUILD_TOOLS" > /dev/null
+# (`yes` stops with SIGPIPE when sdkmanager is done — that's fine.)
+{ yes 2> /dev/null || true; } | "$SDK/cmdline-tools/latest/bin/sdkmanager" "platforms;android-$API" "build-tools;$BUILD_TOOLS" > /dev/null
 BT="$SDK/build-tools/$BUILD_TOOLS"
 JAR="$SDK/platforms/android-$API/android.jar"
 read -r VERSION_CODE VERSION_NAME < VERSION
