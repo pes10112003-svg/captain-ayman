@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">كابتن أيمن</string>
+    <string name="offline_title">مفيش إنترنت</string>
+    <string name="offline_text">اتأكد إن النت شغال وجرّب تاني.</string>
+    <string name="retry">حاول تاني</string>
+    <string name="channel_meals">تذكير الوجبات</string>
+</resources>

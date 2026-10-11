@@ -1,0 +1,41 @@
+# Builds the Android app (android/) on GitHub's machines, which come with the Android SDK.
+# The signed APK is pushed to the `android-build` branch; it is copied into
+# public/downloads/captain-ayman.apk by hand so the site serves it.
+name: Android app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["android/**", ".github/workflows/android.yml"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Build and sign
+        run: bash android/build.sh
+      - name: Publish to the android-build branch
+        run: |
+          mkdir /tmp/out && cd /tmp/out
+          cp "$GITHUB_WORKSPACE/android/build/captain-ayman.apk" .
+          # This branch only carries the APK: tell Vercel not to deploy it.
+          printf '{ "git": { "deploymentEnabled": false } }\n' > vercel.json
+          git init -q -b android-build
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add . && git commit -q -m "Android app from ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" android-build
