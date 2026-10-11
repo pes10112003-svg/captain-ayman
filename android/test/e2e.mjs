@@ -36,6 +36,28 @@ async function waitFor(fn, ms, step = 2000) {
 async function run() {
   adb("pm", "grant", PKG, "android.permission.POST_NOTIFICATIONS");
   adb("appops", "set", PKG, "SCHEDULE_EXACT_ALARM", "allow");
+  // Control: a screenshot of the home screen works on this emulator.
+  const screencap = () => {
+    try {
+      return execFileSync("adb", ["exec-out", "screencap", "-p"], { maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] });
+    } catch {
+      return Buffer.alloc(0);
+    }
+  };
+  const brightness = async (png) => {
+    const { width, height } = await sharp(png).metadata();
+    // Only the middle: status/navigation bar icons belong to the system and stay visible.
+    const s = await sharp(png)
+      .extract({ left: 0, top: Math.round(height * 0.15), width, height: Math.round(height * 0.7) })
+      .stats();
+    return s.channels.slice(0, 3).reduce((a, c) => a + c.mean, 0) / 3;
+  };
+  adb("input", "keyevent", "3");
+  await sleep(3000);
+  const home = screencap();
+  if (home.length > 100) fs.writeFileSync(path.join(OUT, "control-home-screen.png"), home);
+  check("control: a normal screenshot works on this phone", home.length > 100 && (await brightness(home)) > 5, `${home.length} bytes`);
+
   adb("am", "start", "-W", "-n", `${PKG}/.MainActivity`);
 
   const [device] = await _android.devices({ omitDriverInstall: true });
@@ -43,17 +65,16 @@ async function run() {
   const page = await webview.page();
   page.setDefaultTimeout(45_000);
 
-  // 1. Screenshots are blocked: the system capture of the app is black.
+  // 1. Screenshots are blocked: capturing the app gives nothing or a black image.
   await sleep(4000);
-  const cap = await device.screenshot();
-  fs.writeFileSync(path.join(OUT, "system-screenshot.png"), cap);
-  // Only the app's area: the status/navigation bar icons belong to the system and stay visible.
-  const { width, height } = await sharp(cap).metadata();
-  const middle = await sharp(cap)
-    .extract({ left: 0, top: Math.round(height * 0.15), width, height: Math.round(height * 0.7) })
-    .stats();
-  const brightness = middle.channels.slice(0, 3).reduce((a, c) => a + c.mean, 0) / 3;
-  check("system screenshot of the app is black (FLAG_SECURE)", brightness < 2, `mean brightness ${brightness.toFixed(2)}`);
+  const cap = screencap();
+  if (cap.length > 100) fs.writeFileSync(path.join(OUT, "system-screenshot-of-app.png"), cap);
+  const capBrightness = cap.length > 100 ? await brightness(cap) : 0;
+  check(
+    "screenshot of the app is blocked (FLAG_SECURE)",
+    cap.length <= 100 || capBrightness < 2,
+    cap.length <= 100 ? "the phone refused to capture the screen" : `black image, mean brightness ${capBrightness.toFixed(2)}`,
+  );
   const ourWindow =
     adb("dumpsys", "window", "windows")
       .split("Window #")
