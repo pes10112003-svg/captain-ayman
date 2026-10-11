@@ -10,7 +10,7 @@ import type { Actor } from "../auth/types";
 import { coachToday } from "./settings";
 import { addDays } from "@/lib/time";
 import { isUuid } from "@/lib/utils";
-import type { NutritionPlanInput } from "@/lib/validation";
+import { FIXED_COACH_SETTINGS, type NutritionPlanInput } from "@/lib/validation";
 
 export async function loadActiveNutritionPlan(clientId: string, dbx: Executor = db) {
   return dbx.query.nutritionPlans.findFirst({
@@ -23,6 +23,21 @@ export async function loadActiveNutritionPlan(clientId: string, dbx: Executor = 
     },
   });
 }
+/**
+ * Daily meal times for the Android app's local reminders. `clientId` must come from the session.
+ * Times are wall-clock times in the coach's timezone; the app schedules them in that zone.
+ */
+export async function getMealReminders(clientId: string, text: (meal: string) => { title: string; body: string }) {
+  const rows = await db
+    .select({ name: meals.name, time: meals.scheduledTime })
+    .from(meals)
+    .innerJoin(nutritionPlans, eq(meals.planId, nutritionPlans.id))
+    .where(and(eq(nutritionPlans.clientId, clientId), eq(nutritionPlans.isActive, true)))
+    .orderBy(asc(meals.scheduledTime));
+  return { tz: FIXED_COACH_SETTINGS.timezone, meals: rows.map((m) => ({ time: m.time.slice(0, 5), ...text(m.name) })) };
+}
+export type MealReminders = Awaited<ReturnType<typeof getMealReminders>>;
+
 export type NutritionPlanTree = NonNullable<Awaited<ReturnType<typeof loadActiveNutritionPlan>>>;
 
 const n = (v: number | null | undefined) => (v == null ? 0 : v);

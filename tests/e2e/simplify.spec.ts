@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import sharp from "sharp";
 import { STATE_PATH } from "./global-setup";
-import { COACH, newSession, seedIds } from "./helpers";
+import { COACH, newSession, seedIds, APP_UA } from "./helpers";
 
 let ids: Awaited<ReturnType<typeof seedIds>>;
 test.beforeAll(async ({ browser }) => {
@@ -9,7 +9,7 @@ test.beforeAll(async ({ browser }) => {
 });
 
 test("opening animation plays once per session, without hydration errors", async ({ browser }) => {
-  const context = await browser.newContext({ storageState: STATE_PATH, reducedMotion: "no-preference" });
+  const context = await browser.newContext({ storageState: STATE_PATH, reducedMotion: "no-preference", userAgent: APP_UA });
   const page = await context.newPage();
   const errors: string[] = [];
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));

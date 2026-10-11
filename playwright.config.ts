@@ -19,9 +19,12 @@ export default defineConfig({
     trace: "retain-on-failure",
     // Skip the opening splash & entrance animations (covered on their own in simplify.spec.ts).
     contextOptions: { reducedMotion: "reduce" },
+    // Requests made by a service worker can't carry a test User-Agent.
+    serviceWorkers: "block",
   },
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"] } },
-    { name: "mobile", use: { ...devices["Pixel 7"] }, grep: /@mobile/ },
+    // Client pages only open in the Android app (its User-Agent carries "CaptainAymanApp/") or on iPhone.
+    { name: "desktop", use: { ...devices["Desktop Chrome"], userAgent: `${devices["Desktop Chrome"].userAgent} CaptainAymanApp/1` } },
+    { name: "mobile", use: { ...devices["Pixel 7"], userAgent: `${devices["Pixel 7"].userAgent} CaptainAymanApp/1` }, grep: /@mobile/ },
   ],
 });

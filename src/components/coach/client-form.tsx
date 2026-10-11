@@ -64,7 +64,14 @@ export function buildInviteMessage(t: Dict, info: InviteInfo, client: { name: st
     password: client.password,
   });
   // No access code configured → drop that line.
-  return info.accessCode ? msg : msg.split("\n").filter((line) => !line.trim().endsWith(":")).join("\n");
+  const body = info.accessCode
+    ? msg
+    : msg
+        .split("\n")
+        .filter((line) => !line.trim().endsWith(":"))
+        .join("\n");
+  // Android clients use the app (client pages don't open in Android browsers).
+  return `${body}\n${interpolate(t.app.inviteLine, { url: `${info.url.replace(/\/+$/, "")}/get-app` })}`;
 }
 
 type CreateResult = { id: string; email: string; generatedPassword: string | null };
@@ -279,7 +286,14 @@ export function ClientForm({
           <Field label={t.clientForm.goalDetails} htmlFor="goalNote" error={errors?.goalNote} optional className="sm:col-span-2">
             <Input id="goalNote" name="goalNote" defaultValue={d.goalNote ?? ""} placeholder={t.clientForm.goalDetailsPh} />
           </Field>
-          <Field label={t.clientForm.coachNotes} htmlFor="coachNotes" error={errors?.coachNotes} hint={t.clientForm.coachNotesHint} optional className="sm:col-span-3">
+          <Field
+            label={t.clientForm.coachNotes}
+            htmlFor="coachNotes"
+            error={errors?.coachNotes}
+            hint={t.clientForm.coachNotesHint}
+            optional
+            className="sm:col-span-3"
+          >
             <Textarea id="coachNotes" name="coachNotes" defaultValue={d.coachNotes ?? ""} rows={3} placeholder={t.clientForm.coachNotesPh} />
           </Field>
         </CardBody>

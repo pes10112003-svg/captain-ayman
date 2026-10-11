@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.captainayman.app",
+      "sha256_cert_fingerprints": ["53:C3:C6:8D:B1:F7:21:56:53:52:BF:13:C2:1C:53:9F:7A:57:8A:83:DF:49:29:4B:4A:B6:8E:2A:B5:B2:EE:47"]
+    }
+  }
+]

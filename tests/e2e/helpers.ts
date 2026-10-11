@@ -1,5 +1,8 @@
-import { expect, type Browser, type Page } from "@playwright/test";
+import { devices, expect, type Browser, type Page } from "@playwright/test";
 import { STATE_PATH } from "./global-setup";
+
+/** Client pages only open inside the Android app (or on iPhone) — tests browse as the app. */
+export const APP_UA = `${devices["Desktop Chrome"].userAgent} CaptainAymanApp/1`;
 
 export const COACH = { email: "coach@kinetic.test", password: "CoachDemo!2026" };
 export const CLIENT_A = { email: "omar@kinetic.test", password: "ClientDemo!2026", name: "Omar Hassan" };
@@ -15,7 +18,7 @@ export async function login(page: Page, who: { email: string; password: string }
 }
 
 export async function newSession(browser: Browser, who: { email: string; password: string }) {
-  const context = await browser.newContext({ storageState: STATE_PATH, reducedMotion: "reduce" });
+  const context = await browser.newContext({ storageState: STATE_PATH, reducedMotion: "reduce", userAgent: APP_UA });
   const page = await context.newPage();
   await login(page, who);
   return { context, page };

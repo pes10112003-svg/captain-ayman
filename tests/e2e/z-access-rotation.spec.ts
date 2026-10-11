@@ -1,11 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { ACCESS_CODE, STATE_PATH } from "./global-setup";
-import { COACH, newSession } from "./helpers";
+import { COACH, newSession, APP_UA } from "./helpers";
 
 // Runs last (file order): rotating the code invalidates the shared access cookie of earlier specs.
 test("changing the access code locks out every other device until it enters the new code", async ({ browser }) => {
   const coach = await newSession(browser, COACH);
-  const other = await browser.newContext({ storageState: STATE_PATH, reducedMotion: "reduce" });
+  const other = await browser.newContext({ storageState: STATE_PATH, reducedMotion: "reduce", userAgent: APP_UA });
   const otherPage = await other.newPage();
   await otherPage.goto("/login");
   await expect(otherPage).toHaveURL(/\/login/);

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { clientAreaAllowed } from "@/lib/app-shell";
 
 /**
  * Edge of the app: per-request CSP nonce, a pathname hint for post-login redirects, and a fast
@@ -17,6 +18,14 @@ export function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = pathname === "/change-password" ? "" : `?next=${encodeURIComponent(pathname + search)}`;
+    return NextResponse.redirect(url);
+  }
+
+  // Client pages open only in the Android app or on iPhone (see src/lib/app-shell.ts).
+  if ((pathname === "/client" || pathname.startsWith("/client/")) && !clientAreaAllowed(request.headers.get("user-agent"))) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/get-app";
+    url.search = "";
     return NextResponse.redirect(url);
   }
 
