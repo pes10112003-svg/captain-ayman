@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { clientAreaAllowed } from "@/lib/app-shell";
+import { clientAreaAllowed, clientDevice } from "@/lib/app-shell";
 
 /**
  * Edge of the app: per-request CSP nonce, a pathname hint for post-login redirects, and a fast
@@ -10,12 +10,23 @@ import { clientAreaAllowed } from "@/lib/app-shell";
  */
 const PROTECTED = ["/coach", "/client", "/change-password"];
 
+/** What an Android browser may still open: the install page, the APK, App Links and the admin emergency page. */
+const ANDROID_BROWSER_OK = ["/get-app", "/downloads/", "/.well-known/", "/offline", "/setup"];
+
 const SESSION_TTL_SECONDS = Number(process.env.SESSION_TTL_DAYS ?? 30) * 86_400;
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const sessionCookie = request.cookies.get("__Host-kinetic_session") ?? request.cookies.get("kinetic_session");
   const hasSession = !!sessionCookie;
+
+  // Android phones use the app only: in an Android browser every page leads to /get-app.
+  if (clientDevice(request.headers.get("user-agent")) === "android" && !ANDROID_BROWSER_OK.some((p) => pathname === p || pathname.startsWith(p))) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/get-app";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
 
   if (!hasSession && PROTECTED.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
     const url = request.nextUrl.clone();

@@ -184,7 +184,7 @@ export const en = {
     pageTitle: "Get the app",
     badge: "Android app",
     title: "Open it in the Captain Ayman app",
-    text: "For your privacy, your training and nutrition pages open only inside the app on Android phones.",
+    text: "On Android phones the site opens only in the app — to keep your data private.",
     download: "Download the app",
     open: "Already installed? Open the app",
     stepsTitle: "Installing for the first time",

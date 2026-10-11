@@ -1,7 +1,8 @@
 /**
  * The Android app (android/) is a thin shell around this site. It adds this mark to its
- * User-Agent and blocks screenshots on the phone. Client pages open only inside the app or on
- * iPhone/iPad (no Android app there); everything else gets /get-app. The coach can use any device.
+ * User-Agent and blocks screenshots on the phone. Android browsers can't open the site at all
+ * (src/proxy.ts sends them to /get-app); iPhones use the browser (there's no iPhone app).
+ * On computers the coach works as usual, while client pages still need the app or an iPhone.
  *
  * Not a security boundary (a User-Agent can be faked) — it keeps ordinary clients inside the
  * screenshot-proof app. Authorization is unchanged and happens on the server for every request.

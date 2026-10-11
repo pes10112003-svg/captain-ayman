@@ -15,15 +15,21 @@ async function session(browser: Browser, userAgent: string, who: { email: string
   return { context, page };
 }
 
-test("client pages open only in the Android app or on iPhone", async ({ browser }) => {
-  // Android browser → install page with the APK.
-  const android = await session(browser, ANDROID_CHROME);
-  await android.page.goto("/client/nutrition");
-  await expect(android.page).toHaveURL(/\/get-app$/);
-  await expect(android.page.getByRole("link", { name: "Download the app" })).toHaveAttribute("href", "/downloads/captain-ayman.apk");
-  await expect(android.page.getByRole("link", { name: /Open the app/ })).toHaveAttribute("href", /^intent:\/\/.*package=com\.captainayman\.app/);
-  await android.context.close();
+test("Android browsers can't open the site at all — only the install page and the APK", async ({ browser }) => {
+  const context = await browser.newContext({ storageState: STATE_PATH, userAgent: ANDROID_CHROME, serviceWorkers: "block" });
+  const page = await context.newPage();
+  for (const path of ["/", "/login", "/coach", "/client/nutrition", "/forgot-password"]) {
+    await page.goto(path);
+    await expect(page, path).toHaveURL(/\/get-app$/);
+  }
+  await expect(page.getByRole("link", { name: "Download the app" })).toHaveAttribute("href", "/downloads/captain-ayman.apk");
+  await expect(page.getByRole("link", { name: /Open the app/ })).toHaveAttribute("href", /^intent:\/\/.*package=com\.captainayman\.app/);
+  expect((await page.request.get("/downloads/captain-ayman.apk")).status()).toBe(200);
+  expect((await page.request.get("/.well-known/assetlinks.json")).status()).toBe(200);
+  await context.close();
+});
 
+test("client pages open only in the Android app or on iPhone", async ({ browser }) => {
   // Computer → "open it from your phone".
   const desktop = await session(browser, DESKTOP_CHROME);
   await desktop.page.goto("/client");
@@ -40,11 +46,13 @@ test("client pages open only in the Android app or on iPhone", async ({ browser 
   }
 });
 
-test("the coach can work from any browser", async ({ browser }) => {
-  const coach = await session(browser, ANDROID_CHROME, COACH);
-  await coach.page.goto("/coach");
-  await expect(coach.page).toHaveURL(/\/coach$/);
-  await coach.context.close();
+test("the coach works from a computer, an iPhone or the Android app", async ({ browser }) => {
+  for (const ua of [DESKTOP_CHROME, IPHONE_SAFARI, APP_UA]) {
+    const coach = await session(browser, ua, COACH);
+    await coach.page.goto("/coach");
+    await expect(coach.page).toHaveURL(/\/coach$/);
+    await coach.context.close();
+  }
 });
 
 test("inside the app, the client's meal times are handed to the phone for reminders", async ({ browser }) => {
