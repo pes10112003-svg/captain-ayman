@@ -49,9 +49,13 @@ public class MainActivity extends Activity {
 
         web = findViewById(R.id.web);
         offline = findViewById(R.id.offline);
-        findViewById(R.id.retry).setOnClickListener(v -> {
-            offline.setVisibility(View.GONE);
-            web.reload();
+        // No lambdas anywhere: they don't compile against android.jar with plain javac.
+        findViewById(R.id.retry).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                offline.setVisibility(View.GONE);
+                web.reload();
+            }
         });
 
         WebSettings s = web.getSettings();
@@ -199,7 +203,13 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void setMealReminders(String json) {
             boolean any = MealReminders.update(getApplicationContext(), json);
-            if (any) runOnUiThread(MainActivity.this::askForNotifications);
+            if (!any) return;
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    askForNotifications();
+                }
+            });
         }
 
         @JavascriptInterface
