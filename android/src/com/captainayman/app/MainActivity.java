@@ -27,8 +27,9 @@ import android.webkit.WebViewClient;
  * (icon, name, reminders, screenshot blocking) need a new APK; bump android/VERSION for those.
  */
 public class MainActivity extends Activity {
-    static final String HOST = "captain-ayman.vercel.app";
-    static final String HOME = "https://" + HOST + "/";
+    /** The site (android/build.sh writes Config.java: the live site, or a local server for the emulator test). */
+    static final String HOME = Config.BASE;
+    private static final Uri BASE = Uri.parse(Config.BASE);
     /** Must match android/VERSION (first number) — the site offers an update to older apps. */
     static final int VERSION = 1;
     static final String EXTRA_PATH = "path";
@@ -43,6 +44,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+        if (Config.DEBUG) WebView.setWebContentsDebuggingEnabled(true); // emulator test build only
         // No screenshots, no screen recording, blank preview in the app switcher.
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
         setContentView(R.layout.main);
@@ -90,7 +92,7 @@ public class MainActivity extends Activity {
     }
 
     static boolean isOurs(Uri u) {
-        return "https".equals(u.getScheme()) && HOST.equals(u.getHost());
+        return BASE.getScheme().equals(u.getScheme()) && BASE.getHost().equals(u.getHost()) && BASE.getPort() == u.getPort();
     }
 
     @Override

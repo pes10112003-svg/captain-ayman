@@ -1,0 +1,99 @@
+# Tests the real Android app on an emulator against a local copy of the site with the demo data:
+# screenshots blocked, sign-in, client pages, meal-reminder alarms and notifications, back button,
+# offline screen. The report (results + screenshots) is pushed to the android-test-report branch.
+name: Android app test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["android/**", ".github/workflows/android-test.yml"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-test
+  cancel-in-progress: true
+
+jobs:
+  emulator:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: kinetic
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      # Throwaway values for this test machine only.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kinetic
+      APP_URL: http://10.0.2.2:3000
+      AUTH_SECRET: ci-emulator-only-secret-0123456789abcdef0123456789
+      ADMIN_KEY: ci-emulator-only-admin-key
+      CRON_SECRET: ci-emulator-only-cron-secret
+      STORAGE_DRIVER: database
+      SEED_COACH_EMAIL: coach@kinetic.test
+      SEED_COACH_PASSWORD: CoachDemo!2026
+      SEED_CLIENT_PASSWORD: ClientDemo!2026
+      SEED_ACCESS_CODE: AYMAN-2026
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Site with demo data
+        run: |
+          npm ci
+          npm run db:migrate
+          npm run db:seed
+          npm run build
+          nohup npx next start -p 3000 > server.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:3000/api/ping > /dev/null && break; sleep 2; done
+          curl -sf http://localhost:3000/api/ping
+
+      - name: Test build of the app (points at the local site, WebView debugging on)
+        run: APP_BASE=http://10.0.2.2:3000/ APP_DEBUG=true APK_NAME=captain-ayman-test.apk bash android/build.sh
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run on the emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
+          script: |
+            adb install -r android/build/captain-ayman-test.apk
+            node android/test/e2e.mjs
+
+      - name: Publish the report to the android-test-report branch
+        if: always()
+        run: |
+          mkdir -p /tmp/report
+          cp -r android-report/. /tmp/report/ 2>/dev/null || true
+          tail -n 200 server.log > /tmp/report/server-log.txt 2>/dev/null || true
+          cd /tmp/report
+          printf '{ "git": { "deploymentEnabled": false } }\n' > vercel.json
+          git init -q -b android-test-report
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add . && git commit -q -m "Emulator test of ${GITHUB_SHA::7} (${{ job.status }})"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" android-test-report
