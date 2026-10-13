@@ -58,6 +58,7 @@ export default async function ClientWorkoutPage() {
             completionPercent={log.completionPercent}
             canComplete={permissions.completeWorkouts}
             canEnterReps={permissions.enterActualReps}
+            week={(log.weekIndex ?? 0) + 1}
             exercises={log.exercises.map((e) => ({
               id: e.id,
               name: e.name,
@@ -69,8 +70,9 @@ export default async function ClientWorkoutPage() {
                 id: s.id,
                 setNumber: s.setNumber,
                 targetReps: s.targetReps,
-                weightLabel: s.targetWeightKg == null ? null : fmt.weight(s.targetWeightKg, prefs.weightUnit),
+                targetWeightKg: s.targetWeightKg,
                 actualReps: s.actualReps,
+                actualWeightKg: s.actualWeightKg,
                 status: s.status,
               })),
             }))}

@@ -476,6 +476,7 @@ export const ar: Dict = {
     exerciseOptions: "خيارات التمرين",
     legendDone: "عمل المطلوب",
     legendLess: "عمل أقل",
+    lifted: "رفع {n}",
     did: "عمل {n}",
     weightIn: "الوزن بالـ{unit}",
     emptyTitle: "مفيش جداول لسه",

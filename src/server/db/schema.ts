@@ -387,6 +387,8 @@ export const workoutSetLogs = pgTable(
     targetReps: integer("target_reps").notNull(),
     targetWeightKg: num("target_weight_kg", 6, 2),
     actualReps: integer("actual_reps"),
+    /** The weight the client says they lifted; null = as prescribed. */
+    actualWeightKg: num("actual_weight_kg", 6, 2),
     status: setLogStatus("status").notNull().default("pending"),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     updatedAt: updatedAt(),

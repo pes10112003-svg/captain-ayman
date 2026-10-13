@@ -96,7 +96,14 @@ export type SheetResult = {
   exercises: {
     name: string;
     position: number;
-    sets: { setNumber: number; status: "pending" | "completed" | "partial" | "skipped"; actualReps: number | null; targetReps: number }[];
+    sets: {
+      setNumber: number;
+      status: "pending" | "completed" | "partial" | "skipped";
+      actualReps: number | null;
+      targetReps: number;
+      actualWeightKg: number | null;
+      targetWeightKg: number | null;
+    }[];
   }[];
 };
 
@@ -140,6 +147,8 @@ async function getSheetResults(clientId: string, planId: string, startsOn: strin
         status: workoutSetLogs.status,
         actualReps: workoutSetLogs.actualReps,
         targetReps: workoutSetLogs.targetReps,
+        actualWeightKg: workoutSetLogs.actualWeightKg,
+        targetWeightKg: workoutSetLogs.targetWeightKg,
       })
       .from(workoutSetLogs)
       .where(inArray(workoutSetLogs.workoutLogId, ids)),
@@ -155,7 +164,14 @@ async function getSheetResults(clientId: string, planId: string, startsOn: strin
         position: e.position,
         sets: setLogs
           .filter((x) => x.exerciseLogId === e.id)
-          .map(({ setNumber, status, actualReps, targetReps }) => ({ setNumber, status, actualReps, targetReps })),
+          .map(({ setNumber, status, actualReps, targetReps, actualWeightKg, targetWeightKg }) => ({
+            setNumber,
+            status,
+            actualReps,
+            targetReps,
+            actualWeightKg,
+            targetWeightKg,
+          })),
       })),
   }));
 }
@@ -478,7 +494,7 @@ export async function getWeekOverview(clientId: string, today: string, weekStart
   });
 }
 
-export async function recordSet(actor: Actor, setLogId: string, input: { done: boolean; actualReps?: number | null }) {
+export async function recordSet(actor: Actor, setLogId: string, input: { done: boolean; actualReps?: number | null; actualWeightKg?: number | null }) {
   if (!isUuid(setLogId)) throw new NotFoundError("Set not found.");
   const scope = await authorizeSelf(actor, "completeWorkouts");
   const { today } = await coachToday(scope.client.coachId);
@@ -497,6 +513,8 @@ export async function recordSet(actor: Actor, setLogId: string, input: { done: b
     if (row.log.status === "completed") throw new ConflictError("This workout is already completed.");
 
     let values: Partial<typeof workoutSetLogs.$inferInsert>;
+    // The weight is kept even before the reps are written (the client may fill "wt" first).
+    const weight = input.actualWeightKg === undefined ? row.set.actualWeightKg : input.actualWeightKg;
     if (input.done) {
       let actual = row.set.targetReps;
       if (input.actualReps != null && input.actualReps !== row.set.targetReps) {
@@ -506,9 +524,9 @@ export async function recordSet(actor: Actor, setLogId: string, input: { done: b
         actual = input.actualReps;
       }
       const status = actual === 0 ? "skipped" : actual >= row.set.targetReps ? "completed" : "partial";
-      values = { actualReps: actual, status, completedAt: new Date() };
+      values = { actualReps: actual, actualWeightKg: weight, status, completedAt: new Date() };
     } else {
-      values = { actualReps: null, status: "pending", completedAt: null };
+      values = { actualReps: null, actualWeightKg: weight, status: "pending", completedAt: null };
     }
 
     const [updated] = await tx.update(workoutSetLogs).set(values).where(eq(workoutSetLogs.id, row.set.id)).returning();
@@ -522,7 +540,13 @@ export async function recordSet(actor: Actor, setLogId: string, input: { done: b
         action: !input.done ? "client.workout_set.reset" : updated!.status === "completed" ? "client.workout_set.completed" : "client.workout_set.partial",
         entityType: "workout_set_log",
         entityId: row.set.id,
-        metadata: { workout: row.log.title, set: row.set.setNumber, targetReps: row.set.targetReps, actualReps: updated!.actualReps },
+        metadata: {
+          workout: row.log.title,
+          set: row.set.setNumber,
+          targetReps: row.set.targetReps,
+          actualReps: updated!.actualReps,
+          actualWeightKg: updated!.actualWeightKg,
+        },
       },
       tx,
     );
@@ -533,6 +557,7 @@ export async function recordSet(actor: Actor, setLogId: string, input: { done: b
         id: updated!.id,
         status: updated!.status,
         actualReps: updated!.actualReps,
+        actualWeightKg: updated!.actualWeightKg,
         completedAt: updated!.completedAt?.toISOString() ?? null,
       },
       summary,

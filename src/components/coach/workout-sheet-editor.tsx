@@ -60,7 +60,14 @@ export type SheetResultData = {
   exercises: {
     name: string;
     position: number;
-    sets: { setNumber: number; status: "pending" | "completed" | "partial" | "skipped"; actualReps: number | null; targetReps: number }[];
+    sets: {
+      setNumber: number;
+      status: "pending" | "completed" | "partial" | "skipped";
+      actualReps: number | null;
+      targetReps: number;
+      actualWeightKg: number | null;
+      targetWeightKg: number | null;
+    }[];
   }[];
 };
 
@@ -676,32 +683,28 @@ const TableSheet = memo(function TableSheet({
               <col key={s} />
             ))}
           </colgroup>
-          <thead>
-            <tr className="bg-surface-2 text-xs">
-              <th className="border-b-2 border-e border-ink border-e-line-strong px-1.5 py-2 text-start font-extrabold">{t.sheet.exercise}</th>
-              <th className="border-b-2 border-e-2 border-ink" />
-              {setCols.map((s) => (
-                <th key={s} className="border-b-2 border-e border-ink border-e-line-strong py-2 font-medium last:border-e-0">
-                  {f(t.sheet.setN, { n: s + 1 })}
-                </th>
-              ))}
-            </tr>
-          </thead>
           {weeks.map((w) => {
             const from = addDays(startsOn, w * 7);
+            const current = w === currentWeek;
+            // Same layout as the paper sheet: "Exercise" on the left, "Week (n)" over the set columns.
             return (
               <tbody key={w}>
-                <tr>
+                <tr className={cn("text-xs", w > 0 && "border-t-[3px] border-ink")}>
                   <th
-                    colSpan={S + 2}
-                    className={cn("border-b-2 border-ink px-2 py-1.5 text-start", w === currentWeek ? "bg-ink text-page" : "bg-surface-3 text-ink")}
+                    scope="colgroup"
+                    colSpan={2}
+                    rowSpan={2}
+                    className="border-b-2 border-e-2 border-ink bg-surface-2 px-1.5 text-start text-sm font-extrabold"
                   >
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span className="text-sm font-extrabold">{f(t.sheet.weekN, { n: w + 1 })}</span>
-                      <span dir="auto" className={cn("text-[11px] font-medium", w === currentWeek ? "text-page/70" : "text-muted")}>
+                    {t.sheet.exercise}
+                  </th>
+                  <th scope="col" colSpan={S} className={cn("border-b border-ink px-2 py-1.5", current ? "bg-ink text-page" : "bg-surface-2 text-ink")}>
+                    <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1">
+                      <span className="text-base font-extrabold">{f(t.sheet.weekN, { n: w + 1 })}</span>
+                      <span dir="auto" className={cn("text-[11px] font-medium", current ? "text-page/70" : "text-muted")}>
                         {fmt.dateShort(from)} – {fmt.dateShort(addDays(from, 6))}
                       </span>
-                      {w === currentWeek ? (
+                      {current ? (
                         <span dir="auto" className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold text-brand-ink">
                           {t.sheet.thisWeek}
                         </span>
@@ -711,8 +714,8 @@ const TableSheet = memo(function TableSheet({
                           type="button"
                           onClick={() => dispatch({ type: "copyWeek", key: table.key, from: w - 1, to: w })}
                           className={cn(
-                            "ms-auto inline-flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold",
-                            w === currentWeek ? "bg-page/15 text-page hover:bg-page/25" : "bg-surface text-ink-2 hover:text-ink",
+                            "inline-flex h-6 items-center gap-1 rounded-md px-2 text-[11px] font-semibold",
+                            current ? "bg-page/15 text-page hover:bg-page/25" : "bg-surface text-ink-2 hover:text-ink",
                           )}
                         >
                           <Copy className="size-3" /> <span dir="auto">{f(t.sheet.copyPrev, { n: w })}</span>
@@ -720,6 +723,13 @@ const TableSheet = memo(function TableSheet({
                       ) : null}
                     </div>
                   </th>
+                </tr>
+                <tr className="bg-surface-2 text-xs">
+                  {setCols.map((s) => (
+                    <th key={s} scope="col" className="border-b-2 border-e border-ink border-e-line-strong py-1.5 font-medium last:border-e-0">
+                      {f(t.sheet.setN, { n: s + 1 })}
+                    </th>
+                  ))}
                 </tr>
                 {table.exercises.map((e, i) => (
                   <ExerciseRows
@@ -787,9 +797,11 @@ const ExerciseRows = memo(function ExerciseRows({
   const outcome = (s: number) => {
     const r = result?.sets.find((x) => x.setNumber === s + 1);
     if (!r) return null;
-    if (r.status === "completed") return { tone: "good" as const, actual: r.actualReps ?? r.targetReps };
-    if (r.status === "partial" || r.status === "skipped") return { tone: "less" as const, actual: r.actualReps ?? 0 };
-    return result!.date < today ? { tone: "less" as const, actual: 0 } : null;
+    // A different weight than prescribed is shown under the "wt" cell.
+    const lifted = r.actualWeightKg != null && r.actualWeightKg !== r.targetWeightKg ? r.actualWeightKg : null;
+    if (r.status === "completed") return { tone: "good" as const, actual: r.actualReps ?? r.targetReps, lifted };
+    if (r.status === "partial" || r.status === "skipped") return { tone: "less" as const, actual: r.actualReps ?? 0, lifted };
+    return result!.date < today ? { tone: "less" as const, actual: 0, lifted: null } : null;
   };
   const cellCls = (o: ReturnType<typeof outcome>) => (o?.tone === "good" ? "bg-good-soft" : o?.tone === "less" ? "bg-warn-soft" : "");
   const label = ex.name.trim() || `#${index + 1}`;
@@ -834,6 +846,9 @@ const ExerciseRows = memo(function ExerciseRows({
                 aria-label={`${label} · ${f(t.sheet.weekN, { n: week + 1 })} · ${f(t.sheet.setN, { n: s + 1 })} · ${t.sheet.wt}`}
                 className="h-9 w-full min-w-0 bg-transparent text-center text-sm font-bold tabular outline-none focus:bg-brand/20"
               />
+              {o?.lifted != null ? (
+                <span className="-mt-1.5 block pb-0.5 text-center text-[9px] font-bold leading-none text-ink-2">{f(t.sheet.lifted, { n: o.lifted })}</span>
+              ) : null}
             </td>
           );
         })}

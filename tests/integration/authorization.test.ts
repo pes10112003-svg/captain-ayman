@@ -30,6 +30,7 @@ import { addMeasurements, getProgress, listMeasurementTypes } from "@/server/ser
 import { listPhotos, readPhoto, uploadProgressPhoto } from "@/server/services/photos";
 import { getClientAnalytics } from "@/server/services/analytics";
 import { DEFAULT_PERMISSIONS } from "@/lib/constants";
+import { recordSetSchema } from "@/lib/validation";
 import { addDays, todayInTz } from "@/lib/time";
 import { makeClient, makeCoach, pngFile, pushPlan, truncateAll, withPlans } from "./fixtures";
 
@@ -148,6 +149,20 @@ describe("4–5 · set logging", () => {
     });
     expect(row!.completedAt).toBeInstanceOf(Date);
     expect(res.summary.percent).toBeCloseTo((8 / 36) * 100, 1);
+  });
+
+  it("client A can write the weight actually lifted — kept when only the reps change", async () => {
+    const sets = await firstSetId(A.actor);
+    const res = await recordSet(A.actor, sets[1]!.id, { done: true, actualReps: 8, actualWeightKg: 62.5 });
+    expect(res.set.actualWeightKg).toBe(62.5);
+    await recordSet(A.actor, sets[1]!.id, { done: true, actualReps: 10 });
+    const [row] = await db.select().from(workoutSetLogs).where(eq(workoutSetLogs.id, sets[1]!.id));
+    expect(row).toMatchObject({ actualReps: 10, actualWeightKg: 62.5, status: "partial" });
+    // Weight alone (no reps yet) is saved without marking the set as done.
+    const w = await recordSet(A.actor, sets[2]!.id, { done: false, actualWeightKg: 40 });
+    expect(w.set).toMatchObject({ status: "pending", actualReps: null, actualWeightKg: 40 });
+    await recordSet(A.actor, sets[2]!.id, { done: false, actualWeightKg: null });
+    expect(recordSetSchema.safeParse({ done: true, actualWeightKg: -5 }).success).toBe(false);
   });
 
   it("completing the workout records a server timestamp and completion %", async () => {

@@ -195,6 +195,8 @@ export type WorkoutPlanInput = z.infer<typeof workoutPlanSchema>;
 export const recordSetSchema = z.object({
   done: z.boolean(),
   actualReps: z.number().int().min(0).max(1000).nullable().optional(),
+  /** What the client wrote in the sheet's "wt" cell (kg); null/omitted = as prescribed. */
+  actualWeightKg: z.number().min(0).max(1000).nullable().optional(),
 });
 
 export const workoutLogEditSchema = z.object({

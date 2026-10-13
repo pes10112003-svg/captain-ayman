@@ -36,6 +36,13 @@
       "when": 1791459865375,
       "tag": "0004_common_kulan_gath",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791851006655,
+      "tag": "0005_set_log_weight",
+      "breakpoints": true
     }
   ]
 }

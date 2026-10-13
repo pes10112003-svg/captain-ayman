@@ -1,0 +1,1 @@
+ALTER TABLE "workout_set_logs" ADD COLUMN "actual_weight_kg" numeric(6, 2);

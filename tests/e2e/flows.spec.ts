@@ -6,34 +6,33 @@ test.beforeAll(async ({ browser }) => {
   ids = await seedIds(browser);
 });
 
-test("@mobile client logs a full set, a partial set and a meal — coach sees exact results", async ({ browser }) => {
+test("@mobile client writes weight and reps in the sheet (full set, partial set) and logs a meal — coach sees exact results", async ({ browser }) => {
   const { context, page } = await newSession(browser, CLIENT_A);
   await page.goto("/client/workout");
-  await expect(page.getByRole("list", { name: "Exercises" })).toBeVisible();
+  const sheet = page.getByRole("table", { name: "Exercises" });
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByRole("columnheader", { name: /^Week \(\d\)$/ })).toBeVisible();
 
-  // Tick set 1 of the first exercise at full target reps.
-  const firstExercise = page.getByRole("list", { name: "Exercises" }).getByRole("listitem").first();
-  const set1 = firstExercise.getByRole("button", { name: /Mark set 1 as done|Set 1 done/ });
-  if ((await set1.getAttribute("aria-pressed")) === "true") {
-    await set1.click(); // start clean
-    await expect(set1).toHaveAttribute("aria-pressed", "false");
-  }
-  // Full target reps (the stepper may still hold a partial value from an earlier run / seed data).
-  const mine = (await (await page.request.get("/api/v1/me/today")).json()) as { workout: { log: { exercises: { sets: { targetReps: number }[] }[] } } };
-  await firstExercise.getByLabel("Reps completed, set 1").fill(String(mine.workout.log.exercises[0]!.sets[0]!.targetReps));
-  await set1.click();
-  await expect(firstExercise.getByRole("button", { name: /Set 1 done/ })).toHaveAttribute("aria-pressed", "true");
+  const mine = (await (await page.request.get("/api/v1/me/today")).json()) as {
+    workout: { log: { exercises: { name: string; sets: { targetReps: number }[] }[] } };
+  };
+  const first = mine.workout.log.exercises[0]!;
+  const cell = (set: number, field: "wt" | "Rep") => sheet.getByLabel(`${first.name} · set ${set} · ${field}`);
 
-  // Set 2 → only 8 reps: set the stepper then tick.
-  const set2 = firstExercise.getByRole("button", { name: /Mark set 2 as done|Set 2 done/ });
-  if ((await set2.getAttribute("aria-pressed")) === "true") {
-    await set2.click(); // start clean (re-runs on the same seed)
-    await expect(set2).toHaveAttribute("aria-pressed", "false");
-  }
-  await firstExercise.getByLabel("Reps completed, set 2").fill("8");
-  await set2.click();
-  await expect(firstExercise.getByRole("button", { name: /Set 2 done/ })).toHaveAttribute("aria-pressed", "true");
-  await page.waitForTimeout(500);
+  // Set 1: the prescribed reps with a heavier weight. Set 2: only 8 reps.
+  await cell(1, "wt").fill("101.5");
+  await cell(1, "Rep").fill(String(first.sets[0]!.targetReps));
+  await cell(1, "Rep").blur();
+  await cell(2, "Rep").fill("8");
+  await cell(2, "Rep").blur();
+  await expect(cell(1, "Rep").locator("..")).toHaveClass(/bg-good-soft/);
+  await expect(cell(2, "Rep").locator("..")).toHaveClass(/bg-warn-soft/);
+  await page.waitForTimeout(800);
+
+  // It sticks after a reload.
+  await page.reload();
+  await expect(cell(1, "wt")).toHaveValue("101.5");
+  await expect(cell(2, "Rep")).toHaveValue("8");
 
   // Meal: tap "Mark as eaten" — no time input exists; the server stamps it.
   await page.goto("/client/nutrition");
@@ -53,7 +52,7 @@ test("@mobile client logs a full set, a partial set and a meal — coach sees ex
   const today = logs.today as string;
   const todayLog = logs.logs.find((l: { date: string }) => l.date === today);
   const sets = todayLog.exercises[0].sets;
-  expect(sets[0]).toMatchObject({ status: "completed", actualReps: sets[0].targetReps });
+  expect(sets[0]).toMatchObject({ status: "completed", actualReps: sets[0].targetReps, actualWeightKg: 101.5 });
   expect(sets[1]).toMatchObject({ status: "partial", actualReps: 8 });
   expect(sets[1].completedAt).toBeTruthy();
 

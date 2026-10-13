@@ -468,6 +468,7 @@ export const en = {
     exerciseOptions: "Exercise options",
     legendDone: "Did the target",
     legendLess: "Did fewer reps",
+    lifted: "lifted {n}",
     did: "did {n}",
     weightIn: "wt = {unit}",
     emptyTitle: "No tables yet",
