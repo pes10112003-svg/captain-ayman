@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Dumbbell, History, LayoutDashboard, LineChart, Settings, Users, Utensils } from "lucide-react";
+import { BarChart3, Dumbbell, History, LayoutDashboard, LineChart, MessagesSquare, Settings, Users, Utensils } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n/client";
 import type { Dict } from "@/i18n/en";
@@ -13,6 +13,7 @@ type NavItem = { href: string; key: NavKey; icon: typeof Users; exact?: boolean 
 export const COACH_NAV: NavItem[] = [
   { href: "/coach", key: "dashboard", icon: LayoutDashboard, exact: true },
   { href: "/coach/clients", key: "clients", icon: Users },
+  { href: "/coach/chat", key: "chat", icon: MessagesSquare },
   { href: "/coach/workouts", key: "workouts", icon: Dumbbell },
   { href: "/coach/nutrition", key: "nutrition", icon: Utensils },
   { href: "/coach/progress", key: "progress", icon: LineChart },

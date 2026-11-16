@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Dumbbell, Home, LineChart, UserRound, Utensils } from "lucide-react";
+import { Dumbbell, Home, LineChart, MessageCircle, UserRound, Utensils } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n/client";
 import type { Dict } from "@/i18n/en";
+import { ChatBadge } from "./inbox";
+
+type Inbox = { notifications: number; chat: number; group: number; coach: number };
 
 type Perms = { viewWorkouts: boolean; viewNutrition: boolean; viewProgress: boolean };
 
@@ -14,24 +17,26 @@ function items(p: Perms, t: Dict) {
     { href: "/client", label: t.nav.home, icon: Home, exact: true, show: true },
     { href: "/client/workout", label: t.nav.workout, icon: Dumbbell, show: p.viewWorkouts },
     { href: "/client/nutrition", label: t.nav.nutrition, icon: Utensils, show: p.viewNutrition },
+    { href: "/client/chat", label: t.nav.chat, icon: MessageCircle, show: true, chat: true },
     { href: "/client/progress", label: t.nav.progress, icon: LineChart, show: p.viewProgress },
     { href: "/client/profile", label: t.nav.profile, icon: UserRound, show: true },
   ].filter((i) => i.show);
 }
 
-export function ClientBottomNav({ permissions }: { permissions: Perms }) {
+export function ClientBottomNav({ permissions, inbox }: { permissions: Perms; inbox: Inbox }) {
   const pathname = usePathname();
   const { t } = useI18n();
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface safe-bottom md:hidden" aria-label={t.nav.main}>
       <ul className="mx-auto flex max-w-lg justify-around px-2">
-        {items(permissions, t).map(({ href, label, icon: Icon, exact }) => {
+        {items(permissions, t).map(({ href, label, icon: Icon, exact, chat }) => {
           const active = exact ? pathname === href : pathname.startsWith(href);
           return (
             <li key={href} className="flex-1">
               <Link href={href} aria-current={active ? "page" : undefined} className="flex flex-col items-center gap-1 pb-2 pt-2.5 text-[11px] font-medium">
-                <span className={cn("grid h-8 w-14 place-items-center rounded-full transition", active ? "bg-brand text-brand-ink" : "text-muted")}>
+                <span className={cn("relative grid h-8 w-12 place-items-center rounded-full transition", active ? "bg-brand text-brand-ink" : "text-muted")}>
                   <Icon className="size-5" aria-hidden />
+                  {chat ? <ChatBadge initial={inbox} className="absolute -top-1 end-0.5" /> : null}
                 </span>
                 <span className={active ? "text-ink" : "text-muted"}>{label}</span>
               </Link>
@@ -43,13 +48,13 @@ export function ClientBottomNav({ permissions }: { permissions: Perms }) {
   );
 }
 
-export function ClientTopNav({ permissions }: { permissions: Perms }) {
+export function ClientTopNav({ permissions, inbox }: { permissions: Perms; inbox: Inbox }) {
   const pathname = usePathname();
   const { t } = useI18n();
   return (
     <nav className="hidden md:block" aria-label={t.nav.main}>
       <ul className="flex gap-1">
-        {items(permissions, t).map(({ href, label, icon: Icon, exact }) => {
+        {items(permissions, t).map(({ href, label, icon: Icon, exact, chat }) => {
           const active = exact ? pathname === href : pathname.startsWith(href);
           return (
             <li key={href}>
@@ -63,6 +68,7 @@ export function ClientTopNav({ permissions }: { permissions: Perms }) {
               >
                 <Icon className="size-4" aria-hidden />
                 {label}
+                {chat ? <ChatBadge initial={inbox} /> : null}
               </Link>
             </li>
           );

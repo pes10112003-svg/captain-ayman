@@ -12,8 +12,7 @@ import { Logo } from "@/components/shared/logo";
 import { LanguageIconButton, ThemeIconButton } from "@/components/shared/preferences";
 import { cn, initials } from "@/lib/utils";
 import { useI18n } from "@/i18n/client";
-import type { Dict } from "@/i18n/en";
-import { interpolate } from "@/i18n/format";
+import { notificationHref, notificationText } from "@/lib/notification-text";
 import { CoachNavLinks } from "./nav";
 import { GlobalSearch } from "./global-search";
 
@@ -28,21 +27,7 @@ export type CoachNotification = {
   clientId?: string | null;
 };
 
-/** Notifications are rendered from their type + data so they follow the viewer's language. */
-export function notificationText(n: CoachNotification, t: Dict): { title: string; body: string | null } {
-  const d = n.data ?? {};
-  const s = (v: unknown) => (typeof v === "string" || typeof v === "number" ? String(v) : "");
-  if (n.type === "workout.completed" && d.clientName)
-    return {
-      title: interpolate(t.notifications.workoutCompleted, { name: s(d.clientName), workout: s(d.workout) }),
-      body: d.pct != null ? interpolate(t.notifications.completion, { pct: s(d.pct) }) : n.body,
-    };
-  if (n.type === "photo.uploaded_by_client" && d.clientName)
-    return { title: interpolate(t.notifications.photoUploaded, { name: s(d.clientName) }), body: null };
-  if (n.type === "plan.updated" && d.plan)
-    return { title: d.plan === "workout" ? t.notifications.workoutPlanUpdated : t.notifications.nutritionPlanUpdated, body: null };
-  return { title: n.title, body: n.body };
-}
+export { notificationText };
 
 export function CoachTopbar({
   name,
@@ -125,7 +110,7 @@ export function CoachTopbar({
                     return (
                       <li key={n.id}>
                         <MenuItem asChild>
-                          <Link href={n.clientId ? `/coach/clients/${n.clientId}` : "/coach"} className="items-start">
+                          <Link href={notificationHref(n, "coach")} className="items-start">
                             <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", n.readAt ? "bg-transparent" : "bg-info")} aria-hidden />
                             <span className="min-w-0">
                               <span className="block text-sm text-ink">{text.title}</span>

@@ -12,6 +12,8 @@ import { getI18n } from "@/i18n/server";
 import { clientAreaAllowed } from "@/lib/app-shell";
 import { AppBridge } from "@/components/client/app-bridge";
 import { getMealReminders } from "@/server/services/nutrition";
+import { clientChatUnread, listClientNotifications } from "@/server/services/chat";
+import { InboxWatcher, NotificationBell } from "@/components/client/inbox";
 
 export default async function ClientAreaLayout({ children }: { children: React.ReactNode }) {
   const actor = await requireClientPage();
@@ -22,17 +24,21 @@ export default async function ClientAreaLayout({ children }: { children: React.R
   const reminders = permissions.viewNutrition
     ? await getMealReminders(actor.clientId, (meal) => ({ title: f(t.app.reminderTitle, { meal }), body: t.app.reminderBody }))
     : null;
+  const [{ unread }, chat] = await Promise.all([listClientNotifications(actor, 1), clientChatUnread(actor)]);
+  const inbox = { notifications: unread, chat: chat.total, group: chat.group, coach: chat.coach };
   return (
     <div className="min-h-dvh">
       <ContentProtection name={client.fullName} />
       <AppBridge reminders={reminders} />
+      <InboxWatcher initial={inbox} />
       <header className="sticky top-0 z-30 border-b border-line/70 bg-page md:bg-page/85 md:backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-3 px-4 md:h-16">
           <Link href="/client" className="flex min-w-0 items-center gap-2">
             <Logo size="sm" />
           </Link>
-          <ClientTopNav permissions={permissions} />
+          <ClientTopNav permissions={permissions} inbox={inbox} />
           <div className="flex shrink-0 items-center gap-0.5">
+            <NotificationBell initial={inbox} />
             <LanguageIconButton className="size-9 min-w-9" />
             <ThemeIconButton className="size-9" />
             <Link href="/client/profile" aria-label={t.nav.yourProfile} className="ms-1 md:hidden">
@@ -42,7 +48,7 @@ export default async function ClientAreaLayout({ children }: { children: React.R
         </div>
       </header>
       <main className="page-stagger mx-auto w-full max-w-3xl px-4 pb-safe-nav pt-5 md:pb-16 md:pt-8">{children}</main>
-      <ClientBottomNav permissions={permissions} />
+      <ClientBottomNav permissions={permissions} inbox={inbox} />
     </div>
   );
 }

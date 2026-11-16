@@ -833,3 +833,61 @@ export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
     references: [clients.id],
   }),
 }));
+
+/* ───────────────────────────── chat (added Nov 2026 — new tables only) ───────────────────────────── */
+
+/**
+ * Who may write in the coach's group chat: only the coach ("coach_only", the default),
+ * every client ("everyone"), or the clients listed in chat_posters ("selected").
+ */
+export const chatSettings = pgTable(
+  "chat_settings",
+  {
+    coachId: uuid("coach_id")
+      .primaryKey()
+      .references(() => users.id, { onDelete: "cascade" }),
+    mode: varchar("mode", { length: 20 }).notNull().default("coach_only"),
+    updatedAt: updatedAt(),
+  },
+  (t) => [check("chat_settings_mode_chk", sql`${t.mode} IN ('coach_only', 'everyone', 'selected')`)],
+);
+
+/** Clients allowed to write in the group chat when chat_settings.mode = 'selected'. */
+export const chatPosters = pgTable("chat_posters", {
+  clientId: uuid("client_id")
+    .primaryKey()
+    .references(() => clients.id, { onDelete: "cascade" }),
+  coachId: uuid("coach_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: createdAt(),
+});
+
+/** One row per message. client_id NULL = the group chat; otherwise the private chat between the coach and that client. */
+export const chatMessages = pgTable(
+  "chat_messages",
+  {
+    id: id(),
+    coachId: uuid("coach_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").references(() => clients.id, { onDelete: "cascade" }),
+    senderId: uuid("sender_id").references(() => users.id, { onDelete: "set null" }),
+    body: text("body").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("chat_messages_thread_idx").on(t.coachId, t.clientId, t.createdAt), check("chat_messages_body_chk", sql`char_length(${t.body}) BETWEEN 1 AND 2000`)],
+);
+
+/** When each user last opened each chat ("group" or a client id) — for unread counts. */
+export const chatReads = pgTable(
+  "chat_reads",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    thread: varchar("thread", { length: 40 }).notNull(),
+    lastReadAt: timestamp("last_read_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("chat_reads_user_thread_uq").on(t.userId, t.thread)],
+);
