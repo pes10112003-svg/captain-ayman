@@ -476,7 +476,7 @@ export async function getWeekOverview(clientId: string, today: string, weekStart
   const end = addDays(start, 6);
   const plan = await loadActiveWorkoutPlan(clientId);
   const logs = await db
-    .select({ date: workoutLogs.date, status: workoutLogs.status, title: workoutLogs.title, pct: workoutLogs.completionPercent })
+    .select({ id: workoutLogs.id, date: workoutLogs.date, status: workoutLogs.status, title: workoutLogs.title, pct: workoutLogs.completionPercent })
     .from(workoutLogs)
     .where(and(eq(workoutLogs.clientId, clientId), gte(workoutLogs.date, start), lte(workoutLogs.date, end)));
   return Array.from({ length: 7 }, (_, i) => {
@@ -490,6 +490,7 @@ export async function getWeekOverview(clientId: string, today: string, weekStart
       title: log?.title ?? planned?.title ?? null,
       status: log?.status ?? null,
       completionPercent: log?.pct ?? null,
+      logId: log?.id ?? null,
     };
   });
 }

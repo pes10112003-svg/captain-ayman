@@ -5,6 +5,7 @@ import { ForbiddenError } from "@/server/errors";
 import { EmptyState } from "@/components/ui/empty-state";
 import { WeekStrip } from "@/components/client/week-strip";
 import { WorkoutSession } from "@/components/client/workout-session";
+import { WorkoutTabs } from "@/components/client/workout-tabs";
 import { getI18n } from "@/i18n/server";
 import { translateServerMessage } from "@/i18n/server-messages";
 
@@ -28,6 +29,7 @@ export default async function ClientWorkoutPage() {
 
   return (
     <div className="space-y-5">
+      <WorkoutTabs />
       <div>
         <p className="text-sm text-muted">{fmt.dateLong(data.today)}</p>
         <h1 className="mt-0.5 flex flex-wrap items-center gap-2 text-[26px] font-semibold tracking-tight">

@@ -471,3 +471,23 @@ function ExerciseInfo({ exercise: e }: { exercise: SessionExercise }) {
     </Dialog>
   );
 }
+
+/** A past day's sheet, read-only: what the client wrote in "wt" and "Rep" that day (coach's numbers as grey hints). */
+export function WorkoutSheetView({ exercises, week }: { exercises: SessionExercise[]; week: number }) {
+  const sets = Object.fromEntries(
+    exercises.flatMap((e) =>
+      e.sets.map((s) => [
+        s.id,
+        {
+          ...s,
+          reps: s.actualReps == null ? "" : String(s.actualReps),
+          // A recorded set with no weight written was done at the coach's weight — show it as lifted.
+          wt: String(s.actualWeightKg ?? (s.status !== "pending" ? (s.targetWeightKg ?? "") : "")),
+          saving: false,
+        },
+      ]),
+    ),
+  ) as Record<string, LocalSet>;
+  const noop = () => {};
+  return <SessionSheet exercises={exercises} sets={sets} week={week} readOnly canEnterReps onType={noop} onCommit={noop} onToggle={noop} />;
+}
